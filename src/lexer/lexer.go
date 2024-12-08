@@ -1,6 +1,8 @@
 package lexer
 
-import "s8/src/token"
+import (
+	"s8/src/token"
+)
 
 // Include pointers to peek further into the input
 type Lexer struct {
@@ -26,7 +28,23 @@ func (l *Lexer) readChar() {
 
 	l.position = l.readPosition
 	l.readPosition += 1
+}
 
+func (l *Lexer) makeTwoCharToken(tokenType token.TokenType) token.Token {
+	ch := l.ch
+	l.readChar()
+	literal := string(ch) + string(l.ch)
+	tok := token.Token{Type: tokenType, Literal: literal}
+	return tok
+}
+
+// Get the next char but NOT advance our position
+func (l *Lexer) peekChar() byte {
+	if l.readPosition >= len(l.input) {
+		return 0
+	} else {
+		return l.input[l.readPosition]
+	}
 }
 
 func (l *Lexer) NextToken() token.Token {
@@ -36,7 +54,12 @@ func (l *Lexer) NextToken() token.Token {
 
 	switch l.ch {
 	case '=':
-		tok = newToken(token.ASSIGN, l.ch)
+		// Append the 2nd assign token to the 1st one to form the equal token
+		if l.peekChar() == '=' {
+			tok = l.makeTwoCharToken(token.EQ)
+		} else {
+			tok = newToken(token.ASSIGN, l.ch)
+		}
 	case ';':
 		tok = newToken(token.SEMICOLON, l.ch)
 	case '(':
@@ -51,6 +74,22 @@ func (l *Lexer) NextToken() token.Token {
 		tok = newToken(token.LBRACE, l.ch)
 	case '}':
 		tok = newToken(token.RBRACE, l.ch)
+	case '-':
+		tok = newToken(token.MINUS, l.ch)
+	case '!':
+		if l.peekChar() == '=' {
+			tok = l.makeTwoCharToken(token.NOT_EQ)
+		} else {
+			tok = newToken(token.BANG, l.ch)
+		}
+	case '*':
+		tok = newToken(token.ASTERISK, l.ch)
+	case '/':
+		tok = newToken(token.SLASH, l.ch)
+	case '<':
+		tok = newToken(token.LT, l.ch)
+	case '>':
+		tok = newToken(token.GT, l.ch)
 	case 0:
 		tok.Literal = ""
 		tok.Type = token.EOF
@@ -103,6 +142,7 @@ func (l *Lexer) skipWhiteSpace() {
 	}
 }
 
+// At this point we have yet to support floats or hex notations and things alike
 func (l *Lexer) readNumber() string {
 	position := l.position
 
