@@ -26,20 +26,56 @@ type Program struct {
 }
 
 func (p *Program) TokenLiteral() string {
-	if len(p.Statements) > 0 {
-		return p.Statements[0].TokenLiteral()
-	} else {
+	if len(p.Statements) <= 0 {
 		return ""
+	} else {
+		return p.Statements[0].TokenLiteral()
 	}
 }
 
 type Identifier struct {
-	Token token.Token // the identifier token
-	Value string      // the identifier name as a literal value
+	Token token.Token // the token.IDENT
+	Value string      // the identifier as a literal value
 }
 
+///               +-----------------------+
+///               |                       |
+///               |     *ast.Program      |
+///               +-----------------------+
+///               |                       |
+///               |     Statements        |
+///               +----------+------------+
+///                          |
+///                          |
+///                          |
+///                          |
+///               +----------v------------+
+///               |  *ast.LetStatement    |
+///               +-----------------------+
+///               |                       |
+///         +-----+       Name            +-----+
+///         |     +-----------------------+     |
+///         |     |                       |     |
+///         |     |       Value           |     |
+///         |     +-----------------------+     |
+///         |                                   |
+/// +-------v---------+              +----------v------+
+/// |                 |              |                 |
+/// |                 |              |                 |
+/// | *ast.Identifier |              | *ast.Expression |
+/// |                 |              |                 |
+/// |                 |              |                 |
+/// +-----------------+              +-----------------+
+///
+
 type LetStatement struct {
-	Token token.Token // the 'let' token
+	Token token.Token // the token.LET
 	Name  *Identifier // the identifier holding the variable name
 	Value Expression  // the expression producing the value
 }
+
+// This method implementation makes Identifier satisfy the Expression interface
+func (i *Identifier) expressionNode() {}
+
+// As Identifier aims to satisfy the Expression interface, it also needs to satisfy the Node interface
+func (i *Identifier) TokenLiteral() string { return i.Token.Literal }

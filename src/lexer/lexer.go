@@ -95,6 +95,7 @@ func (l *Lexer) NextToken() token.Token {
 		tok.Type = token.EOF
 	default:
 		if isLetter(l.ch) {
+			// Pretty interesting: This is in reverse compared to when we deal with digits
 			tok.Literal = l.readIdentifier()
 			tok.Type = token.LookupIdent(tok.Literal)
 			return tok
