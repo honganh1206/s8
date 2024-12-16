@@ -8,16 +8,16 @@
 
 ## Features
 
-- [ ] C-like syntax
-- [ ] Variable bindings
-- [ ] Intergers and booleans
-- [ ] Arithmetic expressions
-- [ ] Built-in functions
-- [ ] First-class and higher-order functions
-- [ ] Closures
-- [ ] A string data structure
-- [ ] An array data structure
-- [ ] A hash data structure
+- C-like syntax
+- Variable bindings
+- Intergers and booleans
+- Arithmetic expressions
+- Built-in functions
+- First-class and higher-order functions
+- Closures
+- A string data structure
+- An array data structure
+- A hash data structure
 
 ```
 // Showcasing some features
@@ -63,7 +63,7 @@ twice(addTwo; 2); // Return the value of the first call
 
 ## Major components
 
-- [ ] Lexer
+- [x] Lexer
 
 - [ ] Parser
 

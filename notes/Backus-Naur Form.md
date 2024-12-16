@@ -1,5 +1,4 @@
-
-# BNF
+ # BNF
 - A formal notation used to describe the syntax of programming languages or similar structured languages
 - Uses a set of production rules with these elements:
   - `<symbol>` - Non-terminal symbols (variables) in angle brackets

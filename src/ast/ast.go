@@ -1,11 +1,13 @@
 package ast
 
 import (
+	"bytes"
 	"s8/src/token"
 )
 
 type Node interface {
 	TokenLiteral() string // Only for debugging and testing
+	String() string       // Print AST nodes for debugging
 }
 
 // Nodes implementing the Node interface have to provide the TokenLiteral() method
@@ -33,10 +35,30 @@ func (p *Program) TokenLiteral() string {
 	}
 }
 
+// Write the return value of each statement's String() method
+// Then return the buffer as a string
+func (p *Program) String() string {
+	var out bytes.Buffer
+
+	for _, s := range p.Statements {
+		out.WriteString(s.String())
+	}
+
+	return out.String()
+}
+
 type Identifier struct {
 	Token token.Token // the token.IDENT
 	Value string      // the identifier as a literal value
 }
+
+// This method implementation makes Identifier satisfy the Expression interface
+func (i *Identifier) expressionNode() {}
+
+// As Identifier aims to satisfy the Expression interface, it also needs to satisfy the Node interface
+func (i *Identifier) TokenLiteral() string { return i.Token.Literal }
+
+func (i *Identifier) String() string { return i.Value }
 
 ///               +-----------------------+
 ///               |                       |
@@ -74,8 +96,62 @@ type LetStatement struct {
 	Value Expression  // the expression producing the value
 }
 
-// This method implementation makes Identifier satisfy the Expression interface
-func (i *Identifier) expressionNode() {}
+func (ls *LetStatement) statementNode() {}
 
-// As Identifier aims to satisfy the Expression interface, it also needs to satisfy the Node interface
-func (i *Identifier) TokenLiteral() string { return i.Token.Literal }
+func (ls *LetStatement) TokenLiteral() string { return ls.Token.Literal }
+
+func (ls *LetStatement) String() string {
+	var out bytes.Buffer
+
+	out.WriteString(ls.TokenLiteral() + " ")
+	out.WriteString(ls.Name.String())
+	out.WriteString(" = ")
+
+	if ls.Value != nil {
+		out.WriteString(ls.Value.String())
+	}
+
+	out.WriteString(";")
+
+	return out.String()
+}
+
+type ReturnStatement struct {
+	Token       token.Token
+	ReturnValue Expression
+}
+
+func (rs *ReturnStatement) statementNode() {}
+
+func (rs *ReturnStatement) TokenLiteral() string { return rs.Token.Literal }
+
+func (rs *ReturnStatement) String() string {
+	var out bytes.Buffer
+
+	out.WriteString(rs.TokenLiteral() + " ")
+
+	if rs.ReturnValue != nil {
+		out.WriteString(rs.ReturnValue.String())
+	}
+
+	out.WriteString(";")
+
+	return out.String()
+}
+
+type ExpressionStatement struct {
+	Token      token.Token // 1st token of the expression
+	Expression Expression
+}
+
+func (es *ExpressionStatement) statementNode() {} // fulfill the ast.Statement interface so we can add this to the Statements[] slice
+
+func (es ExpressionStatement) TokenLiteral() string { return es.Token.Literal }
+
+func (es *ExpressionStatement) String() string {
+	if es.Expression != nil {
+		return es.Expression.String()
+	}
+
+	return ""
+}
