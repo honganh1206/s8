@@ -10,3 +10,37 @@
 - Each non-terminal (Expr/Term/Factor) in the grammar is represented by a function.
 - These function *recursively* calls each other to match the input against the grammar rule.
 - The parser consumes tokens from the input stream (lexer) and match them to grammar constructs.
+
+## Important ideas
+
+- Our parsing functions should **NEVER** advance the tokens too far. Supposed we are parsing a prefix expression `-5` with this method:
+
+```go
+// Should only handle `-5` and no more
+func (p *Parser) parsePrefixExpression() ast.Expression {
+    // Starts with currentToken being "-"
+    expression := &ast.PrefixExpression{
+        Token:    p.currentToken, // The "-" token
+        Operator: p.currentToken.Literal,
+    }
+
+    // Advance to the next token to parse the right side
+    p.nextToken()
+
+    // Parse the right side (the "5")
+    expression.Right = p.parseExpression(PREFIX)
+
+    // Ends with currentToken being "5"
+    return expression
+}
+```
+
+1. When `parsePrefixExpression()` starts, `currentToken` is the token the function is parsing
+2. The function should **only** consume tokens that are *part of its expression*
+3. When `parsePrefixExpression()` is done executing, `currentToken` should be the **last** token of its expression
+
+- What are the benefits?
+
+1. Parsing functions become composable - each function knows exactly where it starts and stops.
+2. We prevent tokens from accidentally skipped or processed twice.
+3. We ensure each parsing function can parse only tokens that it is responsible for.
