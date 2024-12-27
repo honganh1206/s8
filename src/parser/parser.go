@@ -20,6 +20,18 @@ const (
 	CALL        // myFunction(X)
 )
 
+// Precedence table - Map token types with their precedence
+var precedences = map[token.TokenType]int{
+	token.EQ:       EQUALS,
+	token.NOT_EQ:   EQUALS,
+	token.LT:       LESSGREATER,
+	token.GT:       LESSGREATER,
+	token.PLUS:     SUM,
+	token.MINUS:    SUM,
+	token.SLASH:    PRODUCT,
+	token.ASTERISK: PRODUCT,
+}
+
 type (
 	prefixParseFn func() ast.Expression
 	// The Expression argument denotes the "left side" of the infix operator that is being parsed
@@ -37,14 +49,6 @@ type Parser struct {
 	infixParseFns  map[token.TokenType]infixParseFn
 }
 
-func (p *Parser) registerPrefix(tokenType token.TokenType, fn prefixParseFn) {
-	p.prefixParseFns[tokenType] = fn
-}
-
-func (p *Parser) registerInfixParsingFn(tokenType token.TokenType, fn infixParseFn) {
-	p.infixParseFns[tokenType] = fn
-}
-
 func New(l *lexer.Lexer) *Parser {
 	p := &Parser{l: l, errors: []string{}}
 	// Read TWO tokens so currentToken and peekToken are bot set
@@ -54,6 +58,8 @@ func New(l *lexer.Lexer) *Parser {
 	p.prefixParseFns = make(map[token.TokenType]prefixParseFn)
 	p.registerPrefix(token.IDENT, p.parseIdentifier)
 	p.registerPrefix(token.INT, p.parseIntegerLiteral)
+	p.registerPrefix(token.BANG, p.parsePrefixExpression)
+	p.registerPrefix(token.MINUS, p.parsePrefixExpression)
 
 	return p
 }
@@ -61,6 +67,33 @@ func New(l *lexer.Lexer) *Parser {
 func (p *Parser) Errors() []string {
 	return p.errors
 }
+
+func (p *Parser) ParseProgram() *ast.Program {
+	program := &ast.Program{} // Construct the root node
+	program.Statements = make([]ast.Statement, 0)
+
+	for !p.currentTokenIs(token.EOF) {
+		stmt := p.parseStatement()
+		if stmt != nil {
+			program.Statements = append(program.Statements, stmt)
+		}
+		p.nextToken()
+	}
+
+	return program
+}
+
+func (p *Parser) registerPrefix(tokenType token.TokenType, fn prefixParseFn) {
+	p.prefixParseFns[tokenType] = fn
+}
+
+func (p *Parser) registerInfix(tokenType token.TokenType, fn infixParseFn) {
+	p.infixParseFns[tokenType] = fn
+}
+
+/*
+	HELPER METHODS
+*/
 
 func (p *Parser) peekError(t token.TokenType) {
 	msg := fmt.Sprintf("expected next token to be %s, got %s instead", t, p.peekToken.Type)
@@ -91,6 +124,26 @@ func (p *Parser) peekTokenIs(t token.TokenType) bool {
 func (p *Parser) currentTokenIs(t token.TokenType) bool {
 	return p.currentToken.Type == t
 }
+
+func (p *Parser) peekPrecedence() int {
+	if pre, ok := precedences[p.peekToken.Type]; ok {
+		return pre
+	}
+
+	return LOWEST
+}
+
+func (p *Parser) currentPrecedence() int {
+	if pre, ok := precedences[p.currentToken.Type]; ok {
+		return pre
+	}
+
+	return LOWEST
+}
+
+/*
+	PARSING STATEMENTS
+*/
 
 func (p *Parser) parseStatement() ast.Statement {
 	switch p.currentToken.Type {
@@ -139,6 +192,10 @@ func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
 	return stmt
 }
 
+/*
+	PARSING EXPRESSIONS
+*/
+
 func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
 	stmt := &ast.ExpressionStatement{Token: p.currentToken}
 
@@ -161,6 +218,7 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 	prefix := p.prefixParseFns[p.currentToken.Type]
 
 	if prefix == nil {
+		p.noPrefixParseFnError(p.currentToken.Type)
 		return nil
 	}
 
@@ -170,19 +228,9 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 	return leftExp
 }
 
-func (p *Parser) ParseProgram() *ast.Program {
-	program := &ast.Program{} // Construct the root node
-	program.Statements = make([]ast.Statement, 0)
-
-	for !p.currentTokenIs(token.EOF) {
-		stmt := p.parseStatement()
-		if stmt != nil {
-			program.Statements = append(program.Statements, stmt)
-		}
-		p.nextToken()
-	}
-
-	return program
+func (p *Parser) noPrefixParseFnError(t token.TokenType) {
+	msg := fmt.Sprintf("no prefix parse function for %s found", t)
+	p.errors = append(p.errors, msg)
 }
 
 func (p *Parser) parseIdentifier() ast.Expression {
@@ -203,4 +251,32 @@ func (p *Parser) parseIntegerLiteral() ast.Expression {
 	literal.Value = value
 
 	return literal
+}
+
+// We parse the prefix first then pass the expression on the right to its corresponding prefix parsing function
+// Supposed we have a prefix expression of "-5", the current token would be "-". We construct the AST node for that MINUS token
+// We then advance to the next token (integer literal "5" in this case) and leave it for its own parsing function
+// We populate the right side expression after parsing "5"
+// The end result would look like this
+/*
+PrefixExpression {
+       Token: MINUS,
+       Operator: "-",
+       Right: IntegerLiteral {
+           Token: INT,
+           Value: 5
+       }
+   }
+*/
+func (p *Parser) parsePrefixExpression() ast.Expression {
+	expr := &ast.PrefixExpression{
+		Token:    p.currentToken,
+		Operator: p.currentToken.Literal,
+	}
+
+	p.nextToken()
+
+	expr.Right = p.parseExpression(PREFIX)
+
+	return expr
 }

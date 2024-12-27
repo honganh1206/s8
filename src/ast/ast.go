@@ -166,3 +166,85 @@ func (il *IntegerLiteral) expressionNode() {}
 func (il *IntegerLiteral) TokenLiteral() string { return il.Token.Literal }
 
 func (il *IntegerLiteral) String() string { return il.Token.Literal }
+
+// +-----------------------+
+// |                      |
+// |    *ast.Program      |
+// +-----------------------+
+// |                      |
+// |     Statements       |
+// +----------+-----------+
+//            |
+//            |
+// +----------v-----------+
+// |                      |
+// |*ast.ExpressionStmt   |
+// +-----------+----------+
+//            |
+//            |
+// +----------v-----------+
+// |                      |
+// |*ast.PrefixExpression |
+// +-----------------------+
+// | Token: MINUS         |
+// | Operator: "-"        |
+// | Right               -+------+
+// +-----------------------+     |
+//                               |
+//                    +----------v----------+
+//                    |                     |
+//                    | *ast.IntegerLiteral |
+//                    +---------------------+
+//                    | Token: INT          |
+//                    | Value: 5            |
+//                    +---------------------+
+
+type PrefixExpression struct {
+	Token    token.Token
+	Operator string
+	Right    Expression
+}
+
+func (pe *PrefixExpression) expressionNode() {}
+
+func (pe *PrefixExpression) TokenLiteral() string { return pe.Token.Literal }
+
+// Wrap the expression inside parentheses to make operator precedence explicit
+// Example: -5 + 3 -> (-5) + 3 makes it clear that the minus applies to only 5
+
+func (pe *PrefixExpression) String() string {
+	var out bytes.Buffer
+
+	out.WriteString("(")
+	out.WriteString(pe.Operator)
+	out.WriteString(pe.Right.String())
+	out.WriteString(")")
+
+	return out.String()
+}
+
+type InfixExpression struct {
+	Token    token.Token
+	Left     Expression
+	Operator string
+	Right    Expression
+}
+
+func (ie *InfixExpression) expressionNode() {}
+
+func (ie *InfixExpression) TokenLiteral() string { return ie.Token.Literal }
+
+// Wraide parentheses to make operator precedence explicit
+// Exa + 3 makes it clear that the minus applies to only 5
+
+func (ie *InfixExpression) String() string {
+	var out bytes.Buffer
+
+	out.WriteString("(")
+	out.WriteString(ie.Left.String())
+	out.WriteString(" " + ie.Operator + " ")
+	out.WriteString(ie.Right.String())
+	out.WriteString(")")
+
+	return out.String()
+}
