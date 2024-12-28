@@ -34,64 +34,55 @@ type infixParseFn func(ast.Expression) ast.Expression
 
 ### How this works
 
-```go
-// Parsing "5 + 10 * 2"
- func (p *Parser) parseExpression(precedence int) ast.Expression {
-    // First iteration: Parse "5"
-    prefix := p.prefixParseFns[p.currentToken.Type]
-    leftExp := prefix() // leftExo = 5
-
-		// Loop starts and we see "+"
-		// As there is no operator yet before "+", we compare "+" with LOWEST
-    for !p.peekTokenIs(token.SEMICOLON) && precedence < p.peekPrecedence() {
-        // Get the infix function for "+" or "*"
-        // The "*" has a higher precedence so we group the "10 * 2" first
-        infix := p.infixParseFns[p.peekToken.Type]
-        if infix == nil {
-            return leftExp
-        }
-        p.nextToken()
-        // The key part:
-        // This will RECURSIVELY parse "10 * 2" first
-        leftExp = infix(leftExp)
-    }
-
-    return leftExp
-}
-
-// When parsing "+"
-func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
-    expression := &ast.InfixExpression{
-        Token:    p.currentToken,  // "+"
-        Operator: p.currentToken.Literal,
-        Left:     left,           // "5"
-    }
-
-    precedence := p.curPrecedence()  // precedence of "+"
-    p.nextToken()  // move to "10"
-
-    // This recursive call is crucial!
-    // It will parse "10 * 2" as one unit because "*" has higher precedence
-    expression.Right = p.parseExpression(precedence)
-
-    return expression
-}
-```
+- A simple case: `5 + 10`
 
 The process:
 
-1. Parse "5" as leftExp
-2. See "+", enter loop
-3. In parseInfixExpression for "+":
-   - Set "5" as Left
-   - **Recursively** call parseExpression for right side with "+" precedence
-4. In recursive call for "10 * 2":
-   - Parse "10" as leftExp
-   - See "*", which has higher precedence than "+"
-   - Create new infix expression with "10" as Left
-   - Parse "2" as Right
-   - Return "(10 * 2)" as one unit
-5. Back in original "+", set "(10 * 2)" as Right
+1. Parse `5` with prefix parsing function `parseIntegerLiteral()`
+2. Enter the loop as we satisfy the conditions (not semicolon + LOWEST < SUM)
+3. Call `parseInfixExpression()` and advance to `+` with the current left expression as `5`
+4. (Inside `parseInfixExpression()`) Get the SUM precedence -> Advance to `10` -> Handle `10` with `parseIntegerLiteral()` since it does not satisfy the loop conditions
+
+Call stack:
+
+ ```js
+parseExpressionStatement()
+└── parseExpression(LOWEST)
+    ├── parseIntegerLiteral() -> returns 5
+    ├── enters infix loop (sees +)
+    └── parseInfixExpression(left: 5)
+        ├── creates InfixExpression(+)
+        └── parseExpression(SUM)
+            └── parseIntegerLiteral() -> returns 10
+            // Doesn't enter infix loop (sees semicolon)
+```
+
+The final AST would look like:
+```
+    +
+   / \
+  5   10
+```
+
+- A more complex case: `5 + 10 * 2`
+
+Call stack:
+
+```js
+parseExpressionStatement()
+└── parseExpression(LOWEST)
+    ├── parseIntegerLiteral() -> returns 5
+    ├── enters infix loop (sees +)
+    └── parseInfixExpression(left: 5)
+        ├── creates InfixExpression(+)
+        └── parseExpression(SUM)
+            ├── parseIntegerLiteral() -> returns 10
+            ├── enters infix loop (sees *)
+            └── parseInfixExpression(left: 10)
+                ├── creates InfixExpression(*)
+                └── parseExpression(PRODUCT)
+                    └── parseIntegerLiteral() -> returns 2
+```
 
 The result is an AST that looks like:
 ```
