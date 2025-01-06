@@ -16,7 +16,7 @@
 
 - We use the **recursive approach** extensively here and it is very powerful! Supposed we have to parse this expression `!-5` - note that the right side of the prefix operator `!` is ANOTHER prefix opeartor `-`
 
-```
+```js
 parsePrefixExpression() sees "!"
 └── creates PrefixExpression node for "!"
     └── calls parseExpression(PREFIX) for "-"
@@ -26,8 +26,36 @@ parsePrefixExpression() sees "!"
                     └── calls parseIntegerLiteral() for "5"
 ```
 
-The resulting AST for `!-5` would look like:
+
+- After calling `parsePrefixExpression()` as a `prefixParseFn`, we are back to the outer call to `parseExpression()` with `precedence = LOWEST` (it is never permanently changed to PREFIX) as it was the call made by `parseExpressionStatement()` deep in the call stack of the recursion.
+
+```go
+parseExpressionStatement() {
+    // Initial call
+    expression := parseExpression(LOWEST) {
+        // See '-', call parsePrefixExpression
+        leftExp := parsePrefixExpression() {
+            // Parse the operand with PREFIX precedence
+            operand := parseExpression(PREFIX) {
+                // Parse '1' as integer literal
+                return &ast.IntegerLiteral{Value: 1}
+            }
+            // Return the prefix expression (-1)
+            return &ast.PrefixExpression{"-", operand}
+        }
+
+        // Now back in original parseExpression(LOWEST)
+        // leftExp is (-1)
+        // peek is '+', LOWEST < PLUS is true
+        // Enter loop to parse rest of expression: + 2
+        // Result: (-1) + 2
+    }
+}
 ```
+
+The resulting AST for `!-5` would look like:
+
+```js
 PrefixExpression {
     Token: BANG
     Operator: "!"

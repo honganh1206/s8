@@ -34,9 +34,9 @@ let me = {"name": "Hong Anh", "age": 28"};
 me["name"]
 
 // Bind functions to names with implicit return
-let explicitAdd = fn(a, b) { return a + b;}
-let implicitADd = fn(a, b) { a + b};
-let fib = fn(x) {
+let explicitAdd = funk(a, b) { return a + b;}
+let implicitADd = funk(a, b) { a + b};
+let fib = funk(x) {
   if (x == 0) {
     0; // Implicit return
     } else {
@@ -48,11 +48,11 @@ let fib = fn(x) {
 };
 
 // Higher-order functions (functions that take other functions as arguments)
-let twice = fn(f, x) {
+let twice = funk(f, x) {
   return f(f(x)); // Call the function passed as an argument two times
 };
 
-let addTwo = fn(x) {
+let addTwo = funk(x) {
   return x + 2;
 };
 

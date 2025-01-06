@@ -32,7 +32,7 @@ type infixParseFn func(ast.Expression) ast.Expression
 // - Array index: "array[0]"
 ```
 
-### How this works
+### Examples
 
 - A simple case: `5 + 10`
 

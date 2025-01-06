@@ -13,7 +13,7 @@
 
 ## Important ideas
 
-- Our parsing functions should **NEVER** advance the tokens too far. Supposed we are parsing a prefix expression `-5` with this method:
+1. Our parsing functions should **NEVER** advance the tokens too far. Supposed we are parsing a prefix expression `-5` with this method:
 
 ```go
 // Should only handle `-5` and no more
@@ -44,3 +44,9 @@ func (p *Parser) parsePrefixExpression() ast.Expression {
 1. Parsing functions become composable - each function knows exactly where it starts and stops.
 2. We prevent tokens from accidentally skipped or processed twice.
 3. We ensure each parsing function can parse only tokens that it is responsible for.
+
+2. Rercursive-descent parsing is a **general** technique, while [[Pratt Parsing]] specifically uses recursive-descent parsing but adds more concepts like:
+
+- Precedence (binding power)
+- Prefix/infix parsing function types
+- A core `parseExpression(precedence)` function that **recursively** calls itself

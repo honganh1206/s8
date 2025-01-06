@@ -8,7 +8,7 @@ type Token struct {
 }
 
 var keywords = map[string]TokenType{
-	"fn":     FUNCTION,
+	"funk":   FUNCTION,
 	"let":    LET,
 	"true":   TRUE,
 	"false":  FALSE,
