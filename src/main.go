@@ -13,6 +13,6 @@ func main() {
 		panic(err)
 	}
 	fmt.Printf("Hello %s! This is the s8 programming language!\n", user.Username)
-	fmt.Printf("Feel free to type in commands")
+	fmt.Printf("Feel free to type in commands\n")
 	repl.Start(os.Stdin, os.Stdout)
 }

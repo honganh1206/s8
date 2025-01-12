@@ -3,17 +3,17 @@
 ## Definition
 
 - The "Top Down Operator Precedence" by Vaughan Pratt is recently rediscovered and later popularized.
-- This was invented as an *alternative* to parsers based on context-free grammars and the [[Backus-Naur Form]]
+- This was invented as an _alternative_ to parsers based on context-free grammars and the [[Backus-Naur Form]]
 
 ## The main difference
 
 - Instead of associating parsing functions with grammar rules (like we did with `parseLetStatement()`, Pratt associated these functions with **single token type**.
 
-- *Each token type can have TWO associated parsing functions*: A prefix function (when the token appears at the **start** of an expression like `-5`) and an infix function (when the token appears **between two expressions** like `10 + 2`)
+- _Each token type can have TWO associated parsing functions_: A prefix function (when the token appears at the **start** of an expression like `-5`) and an infix function (when the token appears **between two expressions** like `10 + 2`)
 
 ## Implementation
 
-- Core idea: **Associating** parsing functions with different token types. When we encounter a specific token type, we *invoke the specific parsing functions* to get the AST node that represent the token.
+- Core idea: **Associating** parsing functions with different token types. When we encounter a specific token type, we _invoke the specific parsing functions_ to get the AST node that represent the token.
 
 ```go
 // For parsing expressions that start with a token
@@ -45,19 +45,20 @@ The process:
 
 Call stack:
 
- ```js
+```js
 parseExpressionStatement()
 └── parseExpression(LOWEST)
-    ├── parseIntegerLiteral() -> returns 5
-    ├── enters infix loop (sees +)
-    └── parseInfixExpression(left: 5)
-        ├── creates InfixExpression(+)
-        └── parseExpression(SUM)
-            └── parseIntegerLiteral() -> returns 10
-            // Doesn't enter infix loop (sees semicolon)
+   ├── parseIntegerLiteral() -> returns 5
+   ├── enters infix loop (sees +)
+   └── parseInfixExpression(left: 5)
+       ├── creates InfixExpression(+)
+       └── parseExpression(SUM)
+           └── parseIntegerLiteral() -> returns 10
+           // Doesn't enter infix loop (sees semicolon)
 ```
 
 The final AST would look like:
+
 ```
     +
    / \
@@ -85,6 +86,7 @@ parseExpressionStatement()
 ```
 
 The result is an AST that looks like:
+
 ```
     +
    / \

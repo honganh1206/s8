@@ -30,6 +30,7 @@ var precedences = map[token.TokenType]int{
 	token.MINUS:    SUM,
 	token.SLASH:    PRODUCT,
 	token.ASTERISK: PRODUCT,
+	token.LPAREN:   CALL,
 }
 
 type (
@@ -75,7 +76,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerInfix(token.NOT_EQ, p.parseInfixExpression)
 	p.registerInfix(token.LT, p.parseInfixExpression)
 	p.registerInfix(token.GT, p.parseInfixExpression)
-
+	p.registerInfix(token.LPAREN, p.parseCallExpression)
 	return p
 }
 
@@ -179,15 +180,18 @@ func (p *Parser) parseLetStatement() *ast.LetStatement {
 		return nil
 	}
 
-	// Construct an *ast.Identifier node
+	// Construct an *ast.Identifier node e.g., foobar
 	stmt.Name = &ast.Identifier{Token: p.currentToken, Value: p.currentToken.Literal}
 
 	if !p.expectPeek(token.ASSIGN) {
 		return nil
 	}
 
-	// TODO: Skip expr until a semicolon
-	for !p.currentTokenIs(token.SEMICOLON) {
+	p.nextToken()
+
+	stmt.Value = p.parseExpression(LOWEST)
+
+	if p.peekTokenIs(token.SEMICOLON) {
 		p.nextToken()
 	}
 
@@ -198,9 +202,9 @@ func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
 	stmt := &ast.ReturnStatement{Token: p.currentToken}
 
 	p.nextToken()
+	stmt.ReturnValue = p.parseExpression(LOWEST)
 
-	// TODO: Skip expr until a semicolon
-	for !p.currentTokenIs(token.SEMICOLON) {
+	if p.peekTokenIs(token.SEMICOLON) {
 		p.nextToken()
 	}
 
@@ -433,9 +437,8 @@ func (p *Parser) parseFunctionParameters() []*ast.Identifier {
 	idents = append(idents, ident)
 
 	for p.peekTokenIs(token.COMMA) {
-		// Skip the comma and the space?
-		p.nextToken()
-		p.nextToken()
+		p.nextToken() // to the comma
+		p.nextToken() // to the next func param
 
 		// Parsing the remaining params
 		ident := &ast.Identifier{Token: p.currentToken, Value: p.currentToken.Literal}
@@ -447,4 +450,40 @@ func (p *Parser) parseFunctionParameters() []*ast.Identifier {
 	}
 
 	return idents
+}
+
+func (p *Parser) parseCallExpression(fn ast.Expression) ast.Expression {
+	ce := &ast.CallExpression{Token: p.currentToken, Function: fn}
+
+	ce.Arguments = p.parseCallArguments()
+
+	return ce
+}
+
+func (p *Parser) parseCallArguments() []ast.Expression {
+	args := []ast.Expression{}
+
+	// We finish parsing all the args
+	if p.peekTokenIs(token.RPAREN) {
+		p.nextToken()
+		return args
+	}
+
+	// Parsing the 1st expression argument
+	p.nextToken()
+
+	args = append(args, p.parseExpression(LOWEST))
+
+	for p.peekTokenIs(token.COMMA) {
+		p.nextToken() // to the comma
+		p.nextToken() // to the next expr arg
+
+		args = append(args, p.parseExpression(LOWEST))
+	}
+
+	if !p.expectPeek(token.RPAREN) {
+		return nil
+	}
+
+	return args
 }
