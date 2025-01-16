@@ -2,7 +2,7 @@
 
 Bytecode is an **intermediate representation** of code that _sits between source code and machine code_. It is **NOT** native machine code nor it is assembly language
 
-Bytecode is interpreted by a **virtual machine** (VM) that is _part of the interpreter_
+Bytecode is interpreted by a **virtual machine** (VM) that is _part of the interpreter_.Just like VMWare and VirtualBox emulate real machines and CPUs, such VMs _emulate a machine that particularly understands this specific bytecode format_.
 
 The exact format of a bytecode and the opcodes(the instructions that make up the bytecode) a bytecode is composed of _varies and depends on the guest and host programming languages_
 
