@@ -2,13 +2,13 @@
 
 ## Definition
 
-- A top-down parsing technique to analyze and process the *structure of a language based on its grammar rules*.
-- This technique involes *a set of mutually recursive functions* where each function is responsible for a grammar part of the language being parsed.
+- A top-down parsing technique to analyze and process the _structure of a language based on its grammar rules_.
+- This technique involes _a set of mutually recursive functions_ where each function is responsible for a grammar part of the language being parsed.
 
 ## How it works
 
 - Each non-terminal (Expr/Term/Factor) in the grammar is represented by a function.
-- These function *recursively* calls each other to match the input against the grammar rule.
+- These function _recursively_ calls each other to match the input against the grammar rule.
 - The parser consumes tokens from the input stream (lexer) and match them to grammar constructs.
 
 ## Important ideas
@@ -36,7 +36,7 @@ func (p *Parser) parsePrefixExpression() ast.Expression {
 ```
 
 1. When `parsePrefixExpression()` starts, `currentToken` is the token the function is parsing
-2. The function should **only** consume tokens that are *part of its expression*
+2. The function should **only** consume tokens that are _part of its expression_
 3. When `parsePrefixExpression()` is done executing, `currentToken` should be the **last** token of its expression
 
 - What are the benefits?
@@ -45,7 +45,7 @@ func (p *Parser) parsePrefixExpression() ast.Expression {
 2. We prevent tokens from accidentally skipped or processed twice.
 3. We ensure each parsing function can parse only tokens that it is responsible for.
 
-2. Rercursive-descent parsing is a **general** technique, while [[Pratt Parsing]] specifically uses recursive-descent parsing but adds more concepts like:
+4. Rercursive-descent parsing is a **general** technique, while [[Pratt Parsing]] specifically uses recursive-descent parsing but adds more concepts like:
 
 - Precedence (binding power)
 - Prefix/infix parsing function types

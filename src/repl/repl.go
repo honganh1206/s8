@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"s8/src/evaluator"
 	"s8/src/lexer"
 	"s8/src/parser"
 )
@@ -30,9 +31,13 @@ func Start(in io.Reader, out io.Writer) {
 			continue
 		}
 
-		// Print the output of the parser
-		io.WriteString(out, program.String())
-		io.WriteString(out, "\n")
+		evaluated := evaluator.Eval(program)
+
+		if evaluated != nil {
+			// We return a string representation of the obj here
+			io.WriteString(out, evaluated.Inspect())
+			io.WriteString(out, "\n")
+		}
 	}
 }
 
