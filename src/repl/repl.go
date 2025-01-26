@@ -6,6 +6,7 @@ import (
 	"io"
 	"s8/src/evaluator"
 	"s8/src/lexer"
+	"s8/src/object"
 	"s8/src/parser"
 )
 
@@ -13,6 +14,9 @@ const PROMPT = ">> "
 
 func Start(in io.Reader, out io.Writer) {
 	scanner := bufio.NewScanner(in)
+
+	// env persists between calls to Eval()
+	env := object.NewEnvironment()
 
 	for {
 		fmt.Fprintf(out, PROMPT)
@@ -31,7 +35,7 @@ func Start(in io.Reader, out io.Writer) {
 			continue
 		}
 
-		evaluated := evaluator.Eval(program)
+		evaluated := evaluator.Eval(program, env)
 
 		if evaluated != nil {
 			// We return a string representation of the obj here

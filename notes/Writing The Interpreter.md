@@ -76,8 +76,8 @@ twice(addTwo; 2); // Return the value of the first call
 
 ## Index
 
-- [Lexing](./Lexing.md)
-- [Parsing](./Parsing.md)
-- [Evaluation](./Evaluation.md)
+- [Lexing](Lexing.md)
+- [Parsing](Parsing.md)
+- [Evaluation](Evaluation.md)
 - [Extending the Interpreter]()
 - [Going Further]

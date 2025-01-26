@@ -21,24 +21,3 @@ var (
 ```
 
 The same thing works for `null`: We only need ONE `null` instance to reference throughout our evaluator
-
-## Prefix Expressions
-
-Prefix expressions in this section are just _operator expressions with one operator and one operand_
-
-> [!IMPORTANT]
-> We are defining the semantics of our language. A small change in the evaluation of operator expressions might cause something unintended in a part of a language that seems unrelated.
-
-We first evaluate its operand and then use the result of this evaluation with the operator
-
-## Infix Expressions
-
-There are two groups of infix expressions: The group that produces boolean values e.g., `5 != 5` and the group that produces other types of values e.g., `5 + 5`
-
-Our language will NOT support boolean arithmetic like adding/subtracting/dividing/multiplying booleans like C/C++ or Python
-
-> [!IMPORTANT]
-> We are doing **pointer comparison** here as our method arguments are _pointers instead of values_, and pointer comparison is much faster since _we are comparing the same instances_.
-
-> [!WARNING]
-> We can use pointer comparison for booleans as operands, but we cannot do so with integer operands since _we are always creating new pointers_. For this reason, `5 == 5` would be false since we are comparing pointers with `object.Object` as value wrapper.
