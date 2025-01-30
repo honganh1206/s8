@@ -310,7 +310,7 @@ func (bs *BlockStatement) String() string {
 }
 
 type FunctionLiteral struct {
-	Token      token.Token
+	Token      token.Token // The 'funk' token
 	Parameters []*Identifier
 	Body       *BlockStatement
 }
