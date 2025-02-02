@@ -17,6 +17,7 @@ const (
 	RETURN_VALUE_OBJ = "RETURN_VALUE"
 	ERROR_OBJ        = "ERROR"
 	FUNCTION_OBJ     = "FUNCTION"
+	STRING_OBJ       = "STRING"
 )
 
 // Interface instead of struct
@@ -92,23 +93,10 @@ func (f *Function) Inspect() string {
 	return out.String()
 }
 
-// THE ENVIRONMENT
-
-type Environment struct {
-	store map[string]Object
+type String struct {
+	Value string
 }
 
-func NewEnvironment() *Environment {
-	s := make(map[string]Object)
-	return &Environment{store: s}
-}
+func (s *String) Type() ObjectType { return STRING_OBJ }
 
-func (e *Environment) Get(name string) (Object, bool) {
-	obj, ok := e.store[name]
-	return obj, ok
-}
-
-func (e *Environment) Set(name string, obj Object) Object {
-	e.store[name] = obj
-	return obj
-}
+func (s *String) Inspect() string { return s.Value }

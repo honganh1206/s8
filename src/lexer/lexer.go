@@ -9,7 +9,7 @@ type Lexer struct {
 	input        string
 	position     int  // current char
 	readPosition int  // after current char
-	ch           byte // current char under examination
+	ch           rune // current char under examination
 }
 
 func New(input string) *Lexer {
@@ -23,13 +23,14 @@ func (l *Lexer) readChar() {
 	if l.readPosition >= len(l.input) {
 		l.ch = 0
 	} else {
-		l.ch = l.input[l.readPosition]
+		l.ch = rune(l.input[l.readPosition])
 	}
 
 	l.position = l.readPosition
 	l.readPosition += 1
 }
 
+// Handle cases like != and ==
 func (l *Lexer) makeTwoCharToken(tokenType token.TokenType) token.Token {
 	ch := l.ch
 	l.readChar()
@@ -93,6 +94,9 @@ func (l *Lexer) NextToken() token.Token {
 	case 0:
 		tok.Literal = ""
 		tok.Type = token.EOF
+	case '"':
+		tok.Type = token.STRING
+		tok.Literal = l.readString()
 	default:
 		if isLetter(l.ch) {
 			// Pretty interesting: This is in reverse compared to when we deal with digits
@@ -114,13 +118,13 @@ func (l *Lexer) NextToken() token.Token {
 }
 
 // Examine the current character and return a token depending on which character it is
-func newToken(tokenType token.TokenType, ch byte) token.Token {
+func newToken(tokenType token.TokenType, ch rune) token.Token {
 	return token.Token{Type: tokenType, Literal: string(ch)}
 }
 
 // Changing this function will have a large impact on how our interpreter will parse
 // Like the check for '_' means we can use snake case e.g., foo_bar as identifier
-func isLetter(ch byte) bool {
+func isLetter(ch rune) bool {
 	return 'a' <= ch && ch <= 'z' || 'A' <= ch && ch <= 'Z' || ch == '_' || ch == '!' || ch == '?'
 }
 
@@ -154,6 +158,20 @@ func (l *Lexer) readNumber() string {
 	return l.input[position:l.position]
 }
 
-func isDigit(ch byte) bool {
+func isDigit(ch rune) bool {
 	return '0' <= ch && ch <= '9'
+}
+
+func (l *Lexer) readString() string {
+	// Move to the chars inside the ""
+	pos := l.position + 1
+	for {
+		l.readChar()
+		// Reaching the end of the string
+		if l.ch == '"' || l.ch == 0 {
+			break
+		}
+	}
+
+	return l.input[pos:l.position]
 }

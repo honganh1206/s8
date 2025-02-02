@@ -62,6 +62,24 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		env.Set(node.Name.Value, val)
 	case *ast.Identifier:
 		return evalIdentifier(node, env)
+	case *ast.FunctionLiteral:
+		params := node.Parameters
+		body := node.Body
+		return &object.Function{Parameters: params, Env: env, Body: body}
+	case *ast.CallExpression:
+		// Get the function we want to call
+		// Could be either *ast.Identifier (named functions) or *ast.FunctionLiteral (anonymous function)
+		fn := Eval(node.Function, env)
+		if isError(fn) {
+			return fn
+		}
+		args := evalExpressions(node.Arguments, env)
+		if len(args) == 1 && isError(args[0]) {
+			return args[0]
+		}
+		return applyFunction(fn, args)
+	case *ast.StringLiteral:
+		return &object.String{Value: node.Value}
 	}
 
 	return nil
@@ -158,6 +176,8 @@ func evalInfixExpression(operator string, left, right object.Object) object.Obje
 	// Since we are always allocating NEW instances of object.Integer
 	case left.Type() == object.INTERGER_OBJ && right.Type() == object.INTERGER_OBJ:
 		return evalIntegerInfixExpression(operator, left, right)
+	case left.Type() == object.STRING_OBJ && right.Type() == object.STRING_OBJ:
+		return evalStringInfixExpression(operator, left, right)
 		// For cases like TRUE == TRUE
 		// Here we use POINTER COMPARISON by comparing the memory addresses of two *object.Object pointers
 		// The result is a native Go boolean
@@ -248,4 +268,81 @@ func evalIdentifier(node *ast.Identifier, env *object.Environment) object.Object
 	}
 
 	return val
+}
+
+// Recursively evaluate each expression from left to right
+func evalExpressions(exprs []ast.Expression, env *object.Environment) []object.Object {
+	var result []object.Object
+	// If we make assertions about the order of the argument evaluation
+	// We are on the conservative and safe side of programming design!
+	for _, e := range exprs {
+		evaluated := Eval(e, env)
+		if isError(evaluated) {
+			return []object.Object{evaluated}
+		}
+		result = append(result, evaluated)
+	}
+
+	return result
+}
+
+func applyFunction(fn object.Object, args []object.Object) object.Object {
+	function, ok := fn.(*object.Function)
+
+	if !ok {
+		return newError("not a function: %s", function.Type())
+	}
+
+	extendedEnv := extendedFunctionEnv(function, args)
+	// We pass the extending env instead of the current env of the function
+	// So that the function can access values which are out of its scope
+	// And thus using closures
+	evaluated := Eval(function.Body, extendedEnv)
+
+	return unwrapReturnValue(evaluated)
+	// return evaluated // For testing
+}
+
+func extendedFunctionEnv(fn *object.Function, args []object.Object) *object.Environment {
+	env := object.NewEnclosedEnvironment(fn.Env)
+	// Bind parameters with values inside the enclosed/inner environment
+	for paramIdx, param := range fn.Parameters {
+		env.Set(param.Value, args[paramIdx])
+	}
+
+	return env
+}
+
+// This is critical, since we need to stop the evaluation of the LAST-CALLED function's body (Early return)
+// Without this, evalBlockStatement will continue evaluating statements in outer functions
+/*
+
+// Example for the necessity of this function
+let outer = fn() {
+    let inner = fn() {
+        return 5;  // This return should only exit the inner function
+    };
+    inner();
+    return 10;  // This should be the final return value
+};
+
+*/
+func unwrapReturnValue(obj object.Object) object.Object {
+	// If there is a return statement inside an inner function, we unwrap it right away
+	if returnValue, ok := obj.(*object.ReturnValue); ok {
+		return returnValue.Value
+	}
+
+	return obj
+}
+
+func evalStringInfixExpression(operator string, left, right object.Object) object.Object {
+	if operator != "+" {
+		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
+	}
+
+	leftVal := left.(*object.String).Value
+	rightVal := right.(*object.String).Value
+
+	return &object.String{Value: leftVal + rightVal}
 }

@@ -33,3 +33,12 @@ We can even use a function literal as **an argument** for another function liter
 ```js
 myFunc(x, y, funk(x, y) { return x > y; });
 ```
+
+We can also have **anonymous functions**: We create an unamed, inline function definiton, followed by an argument
+
+```js
+funk(x) { x; }(5) // Immediately invoking this anynymous function with the argument 5
+// Or written more verbosely
+let my_function = funk(x) { x; };
+my_function(5);
+```

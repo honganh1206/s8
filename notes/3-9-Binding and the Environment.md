@@ -15,3 +15,5 @@ The environment is what we use to _keep track of value by associating them with 
 It is **a hash map that associates strings with objects**
 
 The environment will **persist** between calls to `Eval()`, as _we do not want the bindings to be in a different environment_ (thus being a pointer). For testing, however, we should create a new environment for each call to `testEval()` helper function
+
+[Extending the environment](Extending%20the%20environment.md)

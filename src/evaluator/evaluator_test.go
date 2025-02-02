@@ -86,7 +86,6 @@ func TestBangOperator(t *testing.T) {
 		evaluated := testEval(tt.input)
 		testBooleanObject(t, evaluated, tt.expected)
 	}
-
 }
 
 func TestIfElseExpressions(t *testing.T) {
@@ -116,7 +115,6 @@ func TestIfElseExpressions(t *testing.T) {
 }
 
 func TestLetStatements(t *testing.T) {
-
 	tests := []struct {
 		input    string
 		expected int64
@@ -204,6 +202,11 @@ return 1;
 			"foobar",
 			"identifier not found: foobar",
 		},
+		// Only support for + and nothing more
+		{
+			`"Hello" - "World"`,
+			"unknown operator: STRING - STRING",
+		},
 	}
 
 	for _, tt := range tests {
@@ -219,6 +222,84 @@ return 1;
 		if errObj.Message != tt.expectedMessage {
 			t.Errorf("wrong error message, expected: %q, got: %q", tt.expectedMessage, errObj.Message)
 		}
+	}
+}
+
+func TestFunctionObject(t *testing.T) {
+	input := "funk(x) { x + 2 };"
+
+	evaluated := testEval(input)
+
+	fn, ok := evaluated.(*object.Function)
+
+	if !ok {
+		t.Fatalf("object is not Function. got: %T (%+v)", evaluated, evaluated)
+	}
+
+	if len(fn.Parameters) != 1 {
+		t.Fatalf("function has wrong parameters. parameters=%+v", fn.Parameters)
+	}
+
+	if fn.Parameters[0].String() != "x" {
+		t.Fatalf("parameter is not 'x'. got=%q", fn.Parameters[0])
+	}
+
+	expectedBody := "(x + 2)"
+
+	if fn.Body.String() != expectedBody {
+		t.Fatalf("body is not %q. got: %q", expectedBody, fn.Body.String())
+	}
+}
+
+func TestFunctionApplication(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected int64
+	}{
+		{"let identity = funk(x) { x; }; identity(5);", 5},
+		{"let identity = funk(x) { return x; }; identity(5);", 5},
+		{"let double = funk(x) { x * 2; }; double(5);", 10},
+		{"let add = funk(x, y) { x + y; }; add(5, 5);", 10},
+		// Two forms of *ast.CallExpression
+		{"let add = funk(x, y) { x + y; }; add(5 + 5, add(5, 5));", 20}, // Function as an identifier evaluating to a function obj
+		{"funk(x) { x; }(5)", 5}, // Function is a function literal aka Anonymous function
+	}
+	for _, tt := range tests {
+		testIntegerObject(t, testEval(tt.input), tt.expected)
+	}
+}
+
+func TestClosures(t *testing.T) {
+	input := `
+let newAdder = funk(x) {
+funk(y) { x + y };
+};
+let addTwo = newAdder(2);
+addTwo(2);`
+	testIntegerObject(t, testEval(input), 4)
+}
+
+func TestStringLiteral(t *testing.T) {
+	input := `"Hello World!"`
+	evaluated := testEval(input)
+	str, ok := evaluated.(*object.String)
+	if !ok {
+		t.Fatalf("object is not String. got=%T (%+v)", evaluated, evaluated)
+	}
+	if str.Value != "Hello World!" {
+		t.Errorf("String has wrong value. got=%q", str.Value)
+	}
+}
+
+func TestStringConcatenation(t *testing.T) {
+	input := `"Hello" + " " + "World!"`
+	evaluated := testEval(input)
+	str, ok := evaluated.(*object.String)
+	if !ok {
+		t.Fatalf("object is not String. got=%T (%+v)", evaluated, evaluated)
+	}
+	if str.Value != "Hello World!" {
+		t.Errorf("String has wrong value. got=%q", str.Value)
 	}
 }
 

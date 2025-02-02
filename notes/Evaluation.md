@@ -19,3 +19,5 @@
 [3-9-Binding and the Environment](3-9-Binding%20and%20the%20Environment.md)
 
 [3-10-Functions and Function Calls](3-10-Functions%20and%20Function%20Calls.md)
+
+[3-11-Garbage Collector](3-11-Garbage%20Collector.md)

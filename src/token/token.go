@@ -54,9 +54,12 @@ const (
 	IF       = "IF"
 	ELSE     = "ELSE"
 	RETURN   = "RETURN"
+
+	// Data types
+	STRING = "STRING"
 )
 
-// Check if the given identifier is a keyword or an user-defined identifier
+// Check if the given identifier is a keyword or a user-defined identifier
 func LookupIdent(ident string) TokenType {
 	if tok, ok := keywords[ident]; ok {
 		return tok
