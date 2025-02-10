@@ -45,7 +45,7 @@ func (p *Parser) parsePrefixExpression() ast.Expression {
 2. We prevent tokens from accidentally skipped or processed twice.
 3. We ensure each parsing function can parse only tokens that it is responsible for.
 
-4. Rercursive-descent parsing is a **general** technique, while [[Pratt Parsing]] specifically uses recursive-descent parsing but adds more concepts like:
+Rercursive-descent parsing is a **general** technique, while [[Pratt Parsing]] specifically uses recursive-descent parsing but adds more concepts like:
 
 - Precedence (binding power)
 - Prefix/infix parsing function types

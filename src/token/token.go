@@ -36,6 +36,8 @@ const (
 	GT       = ">"
 	EQ       = "=="
 	NOT_EQ   = "!="
+	TILDE    = "~"
+	QUESTION = "?"
 
 	// Delimiters
 	COMMA     = ","
@@ -57,6 +59,10 @@ const (
 
 	// Data types
 	STRING = "STRING"
+
+	// Arrays
+	LBRACKET = "["
+	RBRACKET = "]"
 )
 
 // Check if the given identifier is a keyword or a user-defined identifier

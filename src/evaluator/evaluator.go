@@ -262,12 +262,16 @@ func isError(obj object.Object) bool {
 }
 
 func evalIdentifier(node *ast.Identifier, env *object.Environment) object.Object {
-	val, ok := env.Get(node.Value)
-	if !ok {
-		return newError("identifier not found: %s", node.Value)
+	if val, ok := env.Get(node.Value); ok {
+		return val
 	}
 
-	return val
+	// Search through builtins' separate env
+	if builtin, ok := builtins[node.Value]; ok {
+		return builtin
+	}
+
+	return newError("identifier not found: %s", node.Value)
 }
 
 // Recursively evaluate each expression from left to right
@@ -286,21 +290,33 @@ func evalExpressions(exprs []ast.Expression, env *object.Environment) []object.O
 	return result
 }
 
+// 	Function's Enclosed Env (Outer)
+// ┌────────────────────────┐
+// │ outer variables        │
+// │                        │
+// │   Extended Env (Inner) │
+// │   ┌─────────────────┐  │
+// │   │ function args   │  │
+// │   │ local variables │  │
+// │   └─────────────────┘  │
+// └────────────────────────┘
+
 func applyFunction(fn object.Object, args []object.Object) object.Object {
-	function, ok := fn.(*object.Function)
+	switch fn := fn.(type) {
+	case *object.Function:
 
-	if !ok {
-		return newError("not a function: %s", function.Type())
+		extendedEnv := extendedFunctionEnv(fn, args)
+		// We pass the extended env which EXTENDS (not replaces) the function's enclosed environment
+		// This means the inner function can access values from its outer/enclosing environment
+		evaluated := Eval(fn.Body, extendedEnv)
+
+		return unwrapReturnValue(evaluated)
+	case *object.Builtin:
+		return fn.Fn(args...)
+	default:
+
+		return newError("not a function: %s", fn.Type())
 	}
-
-	extendedEnv := extendedFunctionEnv(function, args)
-	// We pass the extending env instead of the current env of the function
-	// So that the function can access values which are out of its scope
-	// And thus using closures
-	evaluated := Eval(function.Body, extendedEnv)
-
-	return unwrapReturnValue(evaluated)
-	// return evaluated // For testing
 }
 
 func extendedFunctionEnv(fn *object.Function, args []object.Object) *object.Environment {

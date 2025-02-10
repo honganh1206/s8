@@ -4,8 +4,10 @@ This is based on the books "Writing An Interpreter In Go" and "Writing A Compile
 
 ## TODOs
 
-- [ ] A custom garbage collector
-- [ ] Rewrite the language in Rust?
+- [x] Use `rune` instead of `byte` for chars
+- [>] More token types from [bantam-go](https://github.com/obzva/bantam-go)
+- [ ] A custom garbage collector in C
+- [ ] Rewrite the language in Rust
 
 ---
 

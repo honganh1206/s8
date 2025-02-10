@@ -67,6 +67,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.IF, p.parseIfExpression)
 	p.registerPrefix(token.FUNCTION, p.parseFunctionLiteral)
 	p.registerPrefix(token.STRING, p.parseStringLiteral)
+	p.registerPrefix(token.LBRACKET, p.parseArrayLiteral)
 
 	p.infixParseFns = make(map[token.TokenType]infixParseFn)
 	p.registerInfix(token.PLUS, p.parseInfixExpression)
@@ -142,7 +143,12 @@ func (p *Parser) currentTokenIs(t token.TokenType) bool {
 	return p.currentToken.Type == t
 }
 
+// Strengthen left-binding power
+// This method makes our operators more right-associative
+// By decrementing their precedence
 func (p *Parser) peekPrecedence() int {
+	// Current token is an operand
+	// Check if the left-binding power of the next operator is higher than the current right-binding power
 	if pre, ok := precedences[p.peekToken.Type]; ok {
 		return pre
 	}
@@ -233,7 +239,7 @@ func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
 }
 
 // Call the corresponding parsing function for the current token type
-// Returning an interface type value, so we dont use pointer here
+// Returning an interface type value, so we do not use pointer here
 func (p *Parser) parseExpression(precedence int) ast.Expression {
 	// defer untrace(trace("parseExpression"))
 	// Note: Prefix operators have higher precedence than infix operator
@@ -247,7 +253,8 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 
 	leftExp := prefix()
 
-	// Note that the default precedence would be LOWEST
+	// The default precedence is LOWEST
+	// Then we might increase the precedence with each call to parseExpression
 	for !p.peekTokenIs(token.SEMICOLON) && precedence < p.peekPrecedence() {
 		infix := p.infixParseFns[p.peekToken.Type]
 
@@ -257,6 +264,8 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 
 		p.nextToken()
 
+		// The peek token is now the left expression
+		// While the right expression is passed in the infix parsing function
 		leftExp = infix(leftExp)
 	}
 
@@ -277,7 +286,6 @@ func (p *Parser) parseIntegerLiteral() ast.Expression {
 	literal := &ast.IntegerLiteral{Token: p.currentToken}
 
 	value, err := strconv.ParseInt(p.currentToken.Literal, 0, 64)
-
 	if err != nil {
 		msg := fmt.Sprintf("could not parse %q as integer", p.currentToken.Literal)
 		p.errors = append(p.errors, msg)
@@ -306,8 +314,10 @@ func (p *Parser) parsePrefixExpression() ast.Expression {
 	return expr
 }
 
+// When this method is invoked, the current token is the operator
 func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
 	// defer untrace(trace("parseInfixStatement"))
+
 	expr := &ast.InfixExpression{
 		Token:    p.currentToken,
 		Operator: p.currentToken.Literal,
@@ -315,8 +325,8 @@ func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
 	}
 
 	precedence := p.currentPrecedence()
-	p.nextToken()
-	// Only to demonstrate how we increase the right-associativeness of our operators
+	p.nextToken() // Current token is now the right expression
+	// Only to demonstrate how we increase the right-associative-ness of our operators
 	// if expr.Operator == "+" {
 	// 	expr.Right = p.parseExpression(precedence - 1)
 	// } else {
@@ -401,7 +411,6 @@ func (p *Parser) parseBlockStatement() *ast.BlockStatement {
 	}
 
 	return block
-
 }
 
 func (p *Parser) parseFunctionLiteral() ast.Expression {
@@ -420,7 +429,6 @@ func (p *Parser) parseFunctionLiteral() ast.Expression {
 	lit.Body = p.parseBlockStatement()
 
 	return lit
-
 }
 
 func (p *Parser) parseFunctionParameters() []*ast.Identifier {
@@ -456,39 +464,45 @@ func (p *Parser) parseFunctionParameters() []*ast.Identifier {
 func (p *Parser) parseCallExpression(fn ast.Expression) ast.Expression {
 	ce := &ast.CallExpression{Token: p.currentToken, Function: fn}
 
-	ce.Arguments = p.parseCallArguments()
+	ce.Arguments = p.parseExpressionList(token.RPAREN)
 
 	return ce
 }
 
-func (p *Parser) parseCallArguments() []ast.Expression {
-	args := []ast.Expression{}
+func (p *Parser) parseStringLiteral() ast.Expression {
+	return &ast.StringLiteral{Token: p.currentToken, Value: p.currentToken.Literal}
+}
 
-	// We finish parsing all the args
-	if p.peekTokenIs(token.RPAREN) {
+func (p *Parser) parseArrayLiteral() ast.Expression {
+	arr := &ast.ArrayLiteral{Token: p.currentToken}
+
+	arr.Elements = p.parseExpressionList(token.RBRACKET)
+
+	return arr
+}
+
+func (p *Parser) parseExpressionList(end token.TokenType) []ast.Expression {
+	list := []ast.Expression{}
+
+	if p.peekTokenIs(end) {
 		p.nextToken()
-		return args
+		return list
 	}
 
-	// Parsing the 1st expression argument
 	p.nextToken()
 
-	args = append(args, p.parseExpression(LOWEST))
+	list = append(list, p.parseExpression(LOWEST))
 
 	for p.peekTokenIs(token.COMMA) {
-		p.nextToken() // to the comma
-		p.nextToken() // to the next expr arg
+		p.nextToken() // Advance to the comma
+		p.nextToken() // Advance to the next argument
 
-		args = append(args, p.parseExpression(LOWEST))
+		list = append(list, p.parseExpression(LOWEST))
 	}
 
-	if !p.expectPeek(token.RPAREN) {
+	if !p.expectPeek(end) {
 		return nil
 	}
 
-	return args
-}
-
-func (p *Parser) parseStringLiteral() ast.Expression {
-	return &ast.StringLiteral{Token: p.currentToken, Value: p.currentToken.Literal}
+	return list
 }
