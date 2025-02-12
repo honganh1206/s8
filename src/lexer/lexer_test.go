@@ -14,7 +14,7 @@ let add = funk(x, y) {
 };
 
 let result = add(five, ten);
-!-/*5;
+!-/*?~5;
 5 < 10 > 5;
 
 if (5 < 10) {
@@ -78,6 +78,8 @@ if (5 < 10) {
 		{token.MINUS, "-"},
 		{token.SLASH, "/"},
 		{token.ASTERISK, "*"},
+		{token.QUESTION, "?"},
+		{token.TILDE, "~"},
 		{token.INT, "5"},
 		{token.SEMICOLON, ";"},
 

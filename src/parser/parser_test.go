@@ -201,6 +201,7 @@ func TestParsingPrefixExpressions(t *testing.T) {
 		{"-15;", "-", 15},
 		{"!true;", "!", true},
 		{"!false;", "!", false},
+		{"~5;", "~", -6}, // TODO: Add parsing for tilde
 	}
 
 	for _, tt := range prefixTests {
@@ -382,6 +383,18 @@ func TestOperatorPrecedenceParsing(t *testing.T) {
 		{
 			"add(a + b + c * d / f + g)",
 			"add((((a + b) + ((c * d) / f)) + g))",
+		},
+		{
+			"a ? b : c",
+			"(a ? b : c)",
+		},
+		{
+			"a + b ? c + d : e + f",
+			"((a + b) ? (c + d) : (e + f))",
+		},
+		{
+			"5 > 3 ? 1 : 2",
+			"((5 > 3) ? 1 : 2)",
 		},
 	}
 	for _, tt := range tests {
@@ -742,6 +755,32 @@ func TestArrayLiteralParsing(t *testing.T) {
 	testInfixExpression(t, literal.Elements[1], 2, 2, "*")
 	testInfixExpression(t, literal.Elements[2], 3, 3, "+")
 
+}
+
+func TestTernaryExpressionParsing(t *testing.T) {
+	input := "x > 5 ? 10 : 5"
+	l := lexer.New(input)
+	p := New(l)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	if len(program.Statements) != 1 {
+		t.Fatalf("program.Statements does not contain %d statements. got: %d", 1, len(program.Statements))
+	}
+
+	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Fatalf("program.Statements[0] is not ast.ExpressionStatement. got: %T", program.Statements[0])
+	}
+
+	expr, ok := stmt.Expression.(*ast.TernaryExpression)
+	if !ok {
+		t.Fatalf("expr not ast.TernaryExpression. got: %T", stmt.Expression)
+	}
+
+	testInfixExpression(t, expr.Condition, "x", 5, ">")
+	testLiteralExpression(t, expr.TrueValue, 10)
+	testLiteralExpression(t, expr.FalseValue, 5)
 }
 
 /*

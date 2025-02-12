@@ -6,6 +6,10 @@ This is based on the books "Writing An Interpreter In Go" and "Writing A Compile
 
 - [x] Use `rune` instead of `byte` for chars
 - [>] More token types from [bantam-go](https://github.com/obzva/bantam-go)
+  - [>] `?` as ternary/conditional operator
+  - [ ] `^` as exponent (It is called the caret)
+  - [ ] `~` as bitwise NOT operator
+  - [ ] `++` for incrementing and `--` for decrementing (Both postfix)
 - [ ] A custom garbage collector in C
 - [ ] Rewrite the language in Rust
 

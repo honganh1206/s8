@@ -38,10 +38,12 @@ const (
 	NOT_EQ   = "!="
 	TILDE    = "~"
 	QUESTION = "?"
+	EXPONENT = "^"
 
 	// Delimiters
 	COMMA     = ","
 	SEMICOLON = ";"
+	COLON     = ":"
 
 	LPAREN = "("
 	RPAREN = ")"

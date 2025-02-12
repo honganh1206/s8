@@ -13,6 +13,7 @@ const (
 	_ int = iota // Give the following constants incrementing numbers as value
 	LOWEST
 	EQUALS      // ==
+	CONDITIONAL // ? and :
 	LESSGREATER // > or <
 	SUM         // +
 	PRODUCT     // *
@@ -31,11 +32,14 @@ var precedences = map[token.TokenType]int{
 	token.SLASH:    PRODUCT,
 	token.ASTERISK: PRODUCT,
 	token.LPAREN:   CALL,
+	token.QUESTION: CONDITIONAL,
 }
 
 type (
 	prefixParseFn func() ast.Expression
-	// The Expression argument denotes the "left side" of the infix operator that is being parsed
+	// Infix parsing will ALWAYS has an expression before the operator
+	// The Expression-typed argument denotes the "left side" of the infix operator that is being parsed
+	// We call it infix but actually it is just ANYTHING BUT PREFIX
 	infixParseFn func(ast.Expression) ast.Expression
 )
 
@@ -46,6 +50,8 @@ type Parser struct {
 	errors       []string
 
 	// Check if either map has a parsing function associated with currentToken.Type
+	// Having separated tables for prefix and infix expressions is important
+	// As sometimes we use the same token for different expressions e.g., "(" for grouped expression (prefix) and for call expression (infix)
 	prefixParseFns map[token.TokenType]prefixParseFn
 	infixParseFns  map[token.TokenType]infixParseFn
 }
@@ -60,6 +66,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.IDENT, p.parseIdentifier)
 	p.registerPrefix(token.INT, p.parseIntegerLiteral)
 	p.registerPrefix(token.BANG, p.parsePrefixExpression)
+	p.registerPrefix(token.TILDE, p.parsePrefixExpression)
 	p.registerPrefix(token.MINUS, p.parsePrefixExpression)
 	p.registerPrefix(token.TRUE, p.parseBoolean)
 	p.registerPrefix(token.FALSE, p.parseBoolean)
@@ -79,6 +86,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerInfix(token.LT, p.parseInfixExpression)
 	p.registerInfix(token.GT, p.parseInfixExpression)
 	p.registerInfix(token.LPAREN, p.parseCallExpression)
+	p.registerInfix(token.QUESTION, p.parseTernaryExpression)
 	return p
 }
 
@@ -124,7 +132,7 @@ func (p *Parser) nextToken() {
 	p.peekToken = p.l.NextToken()
 }
 
-// Enfore the correctness of the order of tokens by checking the type of the next token
+// Enforce the correctness of the order of tokens by checking the type of the next token
 func (p *Parser) expectPeek(t token.TokenType) bool {
 	if p.peekTokenIs(t) {
 		p.nextToken()
@@ -505,4 +513,28 @@ func (p *Parser) parseExpressionList(end token.TokenType) []ast.Expression {
 	}
 
 	return list
+}
+
+// A kind of mixfix expression, even though we treat this as infix
+func (p *Parser) parseTernaryExpression(condition ast.Expression) ast.Expression {
+	expr := &ast.TernaryExpression{
+		Token:     p.currentToken,
+		Condition: condition,
+	}
+
+	pre := p.currentPrecedence()
+
+	p.nextToken() // Move past the "?"
+	expr.TrueValue = p.parseExpression(pre)
+
+	if !p.expectPeek(token.COLON) {
+		msg := fmt.Sprintf("expected next token to be %s", p.peekToken.Type)
+		p.errors = append(p.errors, msg)
+		return nil
+	}
+
+	p.nextToken() // Move past the ":"
+	expr.FalseValue = p.parseExpression(pre)
+
+	return expr
 }
