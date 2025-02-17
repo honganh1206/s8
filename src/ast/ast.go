@@ -404,10 +404,10 @@ func (al *ArrayLiteral) String() string {
 }
 
 type TernaryExpression struct {
-	Token      token.Token
-	Condition  Expression
-	TrueValue  Expression
-	FalseValue Expression
+	Token       token.Token
+	Condition   Expression
+	Consequence Expression
+	Alternative Expression
 }
 
 func (te *TernaryExpression) expressionNode() {}
@@ -420,11 +420,33 @@ func (te *TernaryExpression) String() string {
 	out.WriteString("(")
 	out.WriteString(te.Condition.String())
 	out.WriteString(" ? ")
-	out.WriteString(te.TrueValue.String())
+	out.WriteString(te.Consequence.String())
 	out.WriteString(" : ")
-	out.WriteString(te.FalseValue.String())
+	out.WriteString(te.Alternative.String())
 	out.WriteString(")")
 
 	return out.String()
 
+}
+
+type IndexExpression struct {
+	Token token.Token
+	Left  Expression
+	Index Expression
+}
+
+func (ie *IndexExpression) expressionNode() {}
+
+func (ie *IndexExpression) TokenLiteral() string { return ie.Token.Literal }
+
+func (ie *IndexExpression) String() string {
+	var out bytes.Buffer
+
+	out.WriteString("(")
+	out.WriteString(ie.Left.String())
+	out.WriteString("[")
+	out.WriteString(ie.Index.String())
+	out.WriteString("])")
+
+	return out.String()
 }

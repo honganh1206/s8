@@ -74,13 +74,38 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 			return fn
 		}
 		args := evalExpressions(node.Arguments, env)
+		// Stop the evaluation immediately and return the error
 		if len(args) == 1 && isError(args[0]) {
 			return args[0]
 		}
 		return applyFunction(fn, args)
 	case *ast.StringLiteral:
 		return &object.String{Value: node.Value}
-		// TODO: Evaluate ternary operator
+	case *ast.TernaryExpression:
+		con := Eval(node.Condition, env)
+		if isError(con) {
+			return con
+		}
+		if isTruthy(con) {
+			return Eval(node.Consequence, env)
+		}
+		return Eval(node.Alternative, env)
+	case *ast.ArrayLiteral:
+		elems := evalExpressions(node.Elements, env)
+		if len(elems) == 1 && isError(elems[0]) {
+			return elems[0]
+		}
+		return &object.Array{Elements: elems}
+	case *ast.IndexExpression:
+		left := Eval(node.Left, env)
+		if isError(left) {
+			return left
+		}
+		index := Eval(node.Index, env)
+		if isError(index) {
+			return index
+		}
+		return evalIndexExpression(left, index)
 	}
 
 	return nil
@@ -362,4 +387,26 @@ func evalStringInfixExpression(operator string, left, right object.Object) objec
 	rightVal := right.(*object.String).Value
 
 	return &object.String{Value: leftVal + rightVal}
+}
+
+func evalIndexExpression(left, index object.Object) object.Object {
+	switch {
+	case left.Type() == object.ARRAY_OBJ && index.Type() == object.INTERGER_OBJ:
+		return evalArrayIndexExpression(left, index)
+	default:
+		return newError("index operator not supported: %s", left.Type())
+	}
+}
+
+func evalArrayIndexExpression(array, index object.Object) object.Object {
+	arrObj := array.(*object.Array)
+	idx := index.(*object.Integer).Value
+	max := int64(len(arrObj.Elements) - 1)
+
+	// Handle index out of bound
+	if idx < 0 || idx > max {
+		return NULL
+	}
+
+	return arrObj.Elements[idx]
 }

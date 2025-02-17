@@ -19,6 +19,7 @@ const (
 	PRODUCT     // *
 	PREFIX      // -X or !X
 	CALL        // myFunction(X)
+	INDEX       // arr[index]
 )
 
 // Precedence table - Map token types with their precedence
@@ -33,6 +34,7 @@ var precedences = map[token.TokenType]int{
 	token.ASTERISK: PRODUCT,
 	token.LPAREN:   CALL,
 	token.QUESTION: CONDITIONAL,
+	token.LBRACKET: INDEX,
 }
 
 type (
@@ -87,6 +89,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerInfix(token.GT, p.parseInfixExpression)
 	p.registerInfix(token.LPAREN, p.parseCallExpression)
 	p.registerInfix(token.QUESTION, p.parseTernaryExpression)
+	p.registerInfix(token.LBRACKET, p.parseIndexExpression)
 	return p
 }
 
@@ -525,7 +528,7 @@ func (p *Parser) parseTernaryExpression(condition ast.Expression) ast.Expression
 	pre := p.currentPrecedence()
 
 	p.nextToken() // Move past the "?"
-	expr.TrueValue = p.parseExpression(pre)
+	expr.Consequence = p.parseExpression(pre)
 
 	if !p.expectPeek(token.COLON) {
 		msg := fmt.Sprintf("expected next token to be %s", p.peekToken.Type)
@@ -534,7 +537,21 @@ func (p *Parser) parseTernaryExpression(condition ast.Expression) ast.Expression
 	}
 
 	p.nextToken() // Move past the ":"
-	expr.FalseValue = p.parseExpression(pre)
+	expr.Alternative = p.parseExpression(pre)
+
+	return expr
+}
+
+func (p *Parser) parseIndexExpression(left ast.Expression) ast.Expression {
+	expr := &ast.IndexExpression{Token: p.currentToken, Left: left}
+
+	p.nextToken() // To the index value
+
+	expr.Index = p.parseExpression(LOWEST)
+
+	if !p.expectPeek(token.RBRACKET) {
+		return nil
+	}
 
 	return expr
 }
