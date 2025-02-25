@@ -3,6 +3,7 @@ package object
 import (
 	"bytes"
 	"fmt"
+	"hash/fnv"
 	"s8/src/ast"
 	"strings"
 )
@@ -20,6 +21,7 @@ const (
 	STRING_OBJ       = "STRING"
 	BUILTIN_OBJ      = "BUILTIN"
 	ARRAY_OBJ        = "ARRAY"
+	HASH_OBJ         = "HASH"
 )
 
 // Interface instead of struct
@@ -131,6 +133,82 @@ func (a *Array) Inspect() string {
 	out.WriteString("[")
 	out.WriteString(strings.Join(elems, ", "))
 	out.WriteString("]")
+
+	return out.String()
+}
+
+// Help keys of the same type sharing the same hash pointing to the same memory location
+type HashKey struct {
+	Type  ObjectType // Scope the HashKey to different object types i.e., string, integer and boolean
+	Value uint64     // Original key of a hash - Needed to store hashed values of strings which need a large range
+}
+
+// Return 0 or 1 to naturally map to the binary feature of boolean values
+func (b *Boolean) HashKey() HashKey {
+	var value uint64
+
+	if b.Value {
+		value = 1
+	} else {
+		value = 0
+	}
+
+	return HashKey{Type: b.Type(), Value: value}
+}
+
+func (i *Integer) HashKey() HashKey {
+	return HashKey{Type: i.Type(), Value: uint64(i.Value)}
+}
+
+func (s *String) HashKey() HashKey {
+	h := fnv.New64a()
+
+	// Hash the string value
+	// There is a small chance that different values result n the same hash i.e. hash collision
+	// We work around that with separate chaining, open addressing, etc.
+	h.Write([]byte(s.Value))
+
+	return HashKey{Type: s.Type(), Value: h.Sum64()}
+}
+
+// Responsible for generating the HashKey
+type HashPair struct {
+	Key   Object // Original key object
+	Value Object // Value associated with the key
+}
+
+// Look like this:
+//
+//	hash := &Hash{
+//	    Pairs: map[HashKey]HashPair{
+//	        HashKey{Type: STRING_OBJ, Value: 234892348}: HashPair{
+//	            Key:   StringObject("foo"),
+//	            Value: StringObject("hello"),
+//	        },
+//	        HashKey{Type: STRING_OBJ, Value: 987654321}: HashPair{
+//	            Key:   StringObject("bar"),
+//	            Value: StringObject("world"),
+//	        },
+//	    }
+//	}
+type Hash struct {
+	Pairs map[HashKey]HashPair
+}
+
+func (h *Hash) Type() ObjectType { return HASH_OBJ }
+
+func (h *Hash) Inspect() string {
+	var out bytes.Buffer
+
+	pairs := []string{}
+
+	for _, pair := range h.Pairs {
+		pairs = append(pairs, fmt.Sprintf("%s: %s", pair.Key.Inspect(), pair.Value.Inspect()))
+	}
+
+	out.WriteString("{")
+	out.WriteString(strings.Join(pairs, ", "))
+	out.WriteString("}")
 
 	return out.String()
 }
