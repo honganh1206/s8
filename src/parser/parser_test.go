@@ -90,7 +90,6 @@ func testLetStatement(t *testing.T, s ast.Statement, name string) bool {
 }
 
 func TestReturnStatements(t *testing.T) {
-
 	tests := []struct {
 		input         string
 		expectedValue interface{}
@@ -153,7 +152,6 @@ func TestIdentifierExpression(t *testing.T) {
 	if !testLiteralExpression(t, stmt.Expression, "foobar") {
 		return
 	}
-
 }
 
 func TestIntegerLiteralExpression(t *testing.T) {
@@ -201,7 +199,7 @@ func TestParsingPrefixExpressions(t *testing.T) {
 		{"-15;", "-", 15},
 		{"!true;", "!", true},
 		{"!false;", "!", false},
-		{"~5;", "~", -6}, // TODO: Add parsing for tilde
+		{"~5;", "~", 5}, // TODO: Add parsing for tilde (bitwise operator)
 	}
 
 	for _, tt := range prefixTests {
@@ -278,7 +276,6 @@ func TestParsingInfixExpressions(t *testing.T) {
 			return
 		}
 	}
-
 }
 
 func TestOperatorPrecedenceParsing(t *testing.T) {
@@ -584,7 +581,6 @@ func TestFunctionLiteralParsing(t *testing.T) {
 	}
 
 	testInfixExpression(t, bodyStmt.Expression, "x", "y", "+")
-
 }
 
 func TestFunctionParametersParsing(t *testing.T) {
@@ -652,7 +648,6 @@ func TestCallExpressionParsing(t *testing.T) {
 	testLiteralExpression(t, expr.Arguments[0], 1)
 	testInfixExpression(t, expr.Arguments[1], 2, 3, "*")
 	testInfixExpression(t, expr.Arguments[2], 4, 5, "+")
-
 }
 
 func TestCallExpressionParameterParsing(t *testing.T) {
@@ -732,7 +727,6 @@ func TestStringLiteralParsing(t *testing.T) {
 	if literal.Value != "hello world" {
 		t.Errorf("literal.Value not %q. got: %q", "hello world", literal.Value)
 	}
-
 }
 
 func TestArrayLiteralParsing(t *testing.T) {
@@ -762,7 +756,6 @@ func TestArrayLiteralParsing(t *testing.T) {
 	testIntegerLiteral(t, literal.Elements[0], 1)
 	testInfixExpression(t, literal.Elements[1], 2, 2, "*")
 	testInfixExpression(t, literal.Elements[2], 3, 3, "+")
-
 }
 
 func TestTernaryExpressionParsing(t *testing.T) {
@@ -809,8 +802,8 @@ func TestParsingIndexExpressions(t *testing.T) {
 	if !testInfixExpression(t, indexExp.Index, 1, 1, "+") {
 		return
 	}
-
 }
+
 func TestParsingHashLiteralsStringKeys(t *testing.T) {
 	input := `{"one": 1, "two": 2, "three": 3}`
 	l := lexer.New(input)
@@ -945,7 +938,6 @@ func testIntegerLiteral(t *testing.T, expr ast.Expression, value int64) bool {
 	}
 
 	return true
-
 }
 
 func testIdentifier(t *testing.T, expr ast.Expression, value string) bool {
@@ -967,7 +959,6 @@ func testIdentifier(t *testing.T, expr ast.Expression, value string) bool {
 	}
 
 	return true
-
 }
 
 func testInfixExpression(t *testing.T, expr ast.Expression, left, right interface{}, operator string) bool {

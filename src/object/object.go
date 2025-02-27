@@ -13,6 +13,7 @@ type ObjectType string
 // For the Type() method
 const (
 	INTERGER_OBJ     = "INTEGER"
+	FLOAT_OBJ        = "FLOAT"
 	BOOLEAN_OBJ      = "BOOLEAN"
 	NULL_OBJ         = "NULL"
 	RETURN_VALUE_OBJ = "RETURN_VALUE"
@@ -42,6 +43,14 @@ func (i *Integer) Type() ObjectType { return INTERGER_OBJ }
 type Boolean struct {
 	Value bool
 }
+
+type Float struct {
+	Value float64
+}
+
+func (f *Float) Inspect() string { return fmt.Sprintf("%f", f.Value) }
+
+func (f *Float) Type() ObjectType { return FLOAT_OBJ }
 
 func (b *Boolean) Type() ObjectType { return BOOLEAN_OBJ }
 
@@ -211,4 +220,9 @@ func (h *Hash) Inspect() string {
 	out.WriteString("}")
 
 	return out.String()
+}
+
+// Check if the given object could be used as a hash key
+type Hashable interface {
+	HashKey() HashKey
 }

@@ -1,6 +1,10 @@
 package evaluator
 
-import "s8/src/object"
+import (
+	"fmt"
+	"math"
+	"s8/src/object"
+)
 
 // Separate environment of builtin functions
 var builtins = map[string]*object.Builtin{
@@ -85,6 +89,34 @@ var builtins = map[string]*object.Builtin{
 			copy(newElems, arr.Elements)
 			newElems[length] = args[1]
 			return &object.Array{Elements: newElems}
+		},
+	},
+	// Print given args to STDOUT
+	"puts": {
+		Fn: func(args ...object.Object) object.Object {
+			for _, arg := range args {
+				fmt.Println(arg.Inspect())
+			}
+			return NULL
+		},
+	},
+	"power": {
+		Fn: func(args ...object.Object) object.Object {
+			if len(args) != 2 {
+				return newError("wrong number of arguments for power. got: %d, want: 2", len(args))
+			}
+			if args[0].Type() != object.INTERGER_OBJ || args[1].Type() != object.INTERGER_OBJ {
+				return newError("argument to power must of of INTEGER type, got: %s (1st argument) | %s (2nd argument)", args[0].Type(), args[1].Type())
+			}
+			base := args[0].(*object.Integer)
+			exponent := args[1].(*object.Integer)
+
+			result := math.Pow(float64(base.Value), float64(exponent.Value))
+			if result == float64(int64(result)) {
+				return &object.Integer{Value: int64(result)}
+			}
+			// TODO: Return object.Float type
+			return nil
 		},
 	},
 }

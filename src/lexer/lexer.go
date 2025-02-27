@@ -101,6 +101,8 @@ func (l *Lexer) NextToken() token.Token {
 		tok = newToken(token.TILDE, l.ch)
 	case '?':
 		tok = newToken(token.QUESTION, l.ch)
+	case '^':
+		tok = newToken(token.EXPONENT, l.ch)
 	case 0:
 		tok.Literal = ""
 		tok.Type = token.EOF

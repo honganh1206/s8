@@ -15,6 +15,7 @@ const (
 	EQUALS      // ==
 	CONDITIONAL // ? and :
 	LESSGREATER // > or <
+	BITWISE     // &, |, ^, ~, <<, >>
 	SUM         // +
 	PRODUCT     // *
 	PREFIX      // -X or !X
@@ -32,9 +33,11 @@ var precedences = map[token.TokenType]int{
 	token.MINUS:    SUM,
 	token.SLASH:    PRODUCT,
 	token.ASTERISK: PRODUCT,
+	// token.EXPONENT: PRODUCT,
 	token.LPAREN:   CALL,
 	token.QUESTION: CONDITIONAL,
 	token.LBRACKET: INDEX,
+	token.TILDE:    BITWISE,
 }
 
 type (
@@ -78,6 +81,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.STRING, p.parseStringLiteral)
 	p.registerPrefix(token.LBRACKET, p.parseArrayLiteral)
 	p.registerPrefix(token.LBRACE, p.parseHashLiteral)
+	p.registerPrefix(token.TILDE, p.parsePrefixExpression)
 
 	p.infixParseFns = make(map[token.TokenType]infixParseFn)
 	p.registerInfix(token.PLUS, p.parseInfixExpression)
@@ -91,6 +95,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerInfix(token.LPAREN, p.parseCallExpression)
 	p.registerInfix(token.QUESTION, p.parseTernaryExpression)
 	p.registerInfix(token.LBRACKET, p.parseIndexExpression)
+	p.registerInfix(token.EXPONENT, p.parseInfixExpression)
 	return p
 }
 
