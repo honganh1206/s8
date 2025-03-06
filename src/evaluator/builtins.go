@@ -112,11 +112,12 @@ var builtins = map[string]*object.Builtin{
 			exponent := args[1].(*object.Integer)
 
 			result := math.Pow(float64(base.Value), float64(exponent.Value))
+			// Check if the result has no decimal part
 			if result == float64(int64(result)) {
 				return &object.Integer{Value: int64(result)}
 			}
-			// TODO: Return object.Float type
-			return nil
+			return &object.Float{Value: result}
 		},
+		// TODO: Add round and format
 	},
 }

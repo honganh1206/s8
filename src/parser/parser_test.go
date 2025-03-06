@@ -188,6 +188,40 @@ func TestIntegerLiteralExpression(t *testing.T) {
 	}
 }
 
+func TestFloatLiteralExpression(t *testing.T) {
+	input := "5.0;"
+
+	l := lexer.New(input)
+	p := New(l)
+	program := p.ParseProgram() // construct the root node
+	checkParserErrors(t, p)
+
+	if len(program.Statements) != 1 {
+		t.Fatalf("program.Statements has not enough statements. got: %d", len(program.Statements))
+	}
+
+	// Type assertion to convert from the Statement interface to concrete type ExpressionStatement
+	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+
+	if !ok {
+		t.Fatalf("program.Statements[0] is not ast.ExpressionStatement. got: %T", program.Statements[0])
+	}
+
+	literal, ok := stmt.Expression.(*ast.FloatLiteral)
+
+	if !ok {
+		t.Fatalf("exp not ast.FloatLiteral got: %T", stmt.Expression)
+	}
+
+	if literal.Value != 5.0 {
+		t.Errorf("literal.Value not %f. got: %f", 5.0, literal.Value)
+	}
+
+	if literal.TokenLiteral() != "5.0" {
+		t.Errorf("literal.TokenLiteral() not %s. got: %s", "5", literal.TokenLiteral())
+	}
+}
+
 func TestParsingPrefixExpressions(t *testing.T) {
 	// Table-driven test approach
 	prefixTests := []struct {
@@ -196,10 +230,13 @@ func TestParsingPrefixExpressions(t *testing.T) {
 		value    interface{}
 	}{
 		{"!5", "!", 5},
+		{"!5.000000", "!", 5.000000},
 		{"-15;", "-", 15},
 		{"!true;", "!", true},
 		{"!false;", "!", false},
-		{"~5;", "~", 5}, // TODO: Add parsing for tilde (bitwise operator)
+		{"~5;", "~", 5},
+		{"++5", "++", 5},
+		{"--5", "--", 5},
 	}
 
 	for _, tt := range prefixTests {
@@ -250,6 +287,9 @@ func TestParsingInfixExpressions(t *testing.T) {
 		{"5 < 5;", 5, "<", 5},
 		{"5 == 5;", 5, "==", 5},
 		{"5 != 5;", 5, "!=", 5},
+		{"5 << 5;", 5, "<<", 5},
+		{"5 >> 5;", 5, ">>", 5},
+		{"5 & 5;", 5, "&", 5},
 		{"true == true", true, "==", true},
 		{"true != false", true, "!=", false},
 		{"false == false", false, "==", false},
@@ -359,12 +399,10 @@ func TestOperatorPrecedenceParsing(t *testing.T) {
 			"2 / (5 + 5)",
 			"(2 / (5 + 5))",
 		},
-
 		{
 			"-(5 + 5)",
 			"(-(5 + 5))",
 		},
-
 		{
 			"!(true == true)",
 			"(!(true == true))",
@@ -392,6 +430,10 @@ func TestOperatorPrecedenceParsing(t *testing.T) {
 		{
 			"5 > 3 ? 1 : 2",
 			"((5 > 3) ? 1 : 2)",
+		},
+		{
+			"5 & 3 ? 1 : 2",
+			"((5 & 3) ? 1 : 2)",
 		},
 		{
 			"a * [1, 2, 3, 4][b * c] * d",
@@ -908,6 +950,8 @@ func testLiteralExpression(t *testing.T, expr ast.Expression, expected interface
 		return testIntegerLiteral(t, expr, int64(v))
 	case int64:
 		return testIntegerLiteral(t, expr, v)
+	case float64:
+		return testFloatLiteral(t, expr, v)
 	case string:
 		return testIdentifier(t, expr, v)
 	case bool:
@@ -934,6 +978,27 @@ func testIntegerLiteral(t *testing.T, expr ast.Expression, value int64) bool {
 
 	if integ.TokenLiteral() != fmt.Sprintf("%d", value) {
 		t.Errorf("integ.TokenLiteral() not %d. got: %s", value, integ.TokenLiteral())
+		return false
+	}
+
+	return true
+}
+
+func testFloatLiteral(t *testing.T, expr ast.Expression, value float64) bool {
+	fl, ok := expr.(*ast.FloatLiteral)
+
+	if !ok {
+		t.Errorf("expr not *ast.FloatLiteral. got: %T", expr)
+		return false
+	}
+
+	if fl.Value != value {
+		t.Errorf("fl.Value not %f. got: %f", value, fl.Value)
+		return false
+	}
+
+	if fl.TokenLiteral() != fmt.Sprintf("%f", value) {
+		t.Errorf("fl.TokenLiteral() not %f. got: %s", value, fl.TokenLiteral())
 		return false
 	}
 

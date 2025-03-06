@@ -2,6 +2,7 @@ package lexer
 
 import (
 	"s8/src/token"
+	"strings"
 )
 
 // Include pointers to peek further into the input
@@ -72,13 +73,21 @@ func (l *Lexer) NextToken() token.Token {
 	case ',':
 		tok = newToken(token.COMMA, l.ch)
 	case '+':
-		tok = newToken(token.PLUS, l.ch)
+		if l.peekChar() == '+' {
+			tok = l.makeTwoCharToken(token.INCREMENT)
+		} else {
+			tok = newToken(token.PLUS, l.ch)
+		}
 	case '{':
 		tok = newToken(token.LBRACE, l.ch)
 	case '}':
 		tok = newToken(token.RBRACE, l.ch)
 	case '-':
-		tok = newToken(token.MINUS, l.ch)
+		if l.peekChar() == '-' {
+			tok = l.makeTwoCharToken(token.DECREMENT)
+		} else {
+			tok = newToken(token.MINUS, l.ch)
+		}
 	case '!':
 		if l.peekChar() == '=' {
 			tok = l.makeTwoCharToken(token.NOT_EQ)
@@ -90,15 +99,27 @@ func (l *Lexer) NextToken() token.Token {
 	case '/':
 		tok = newToken(token.SLASH, l.ch)
 	case '<':
-		tok = newToken(token.LT, l.ch)
+		if l.peekChar() == '<' {
+			tok = l.makeTwoCharToken(token.LSHIFT)
+		} else {
+			tok = newToken(token.LT, l.ch)
+		}
 	case '>':
-		tok = newToken(token.GT, l.ch)
+		if l.peekChar() == '>' {
+			tok = l.makeTwoCharToken(token.RSHIFT)
+		} else {
+			tok = newToken(token.GT, l.ch)
+		}
 	case '[':
 		tok = newToken(token.LBRACKET, l.ch)
 	case ']':
 		tok = newToken(token.RBRACKET, l.ch)
 	case '~':
 		tok = newToken(token.TILDE, l.ch)
+	case '|':
+		tok = newToken(token.PIPE, l.ch)
+	case '&':
+		tok = newToken(token.AMPERSAND, l.ch)
 	case '?':
 		tok = newToken(token.QUESTION, l.ch)
 	case '^':
@@ -116,8 +137,13 @@ func (l *Lexer) NextToken() token.Token {
 			tok.Type = token.LookupIdent(tok.Literal)
 			return tok
 		} else if isDigit(l.ch) {
-			tok.Type = token.INT
-			tok.Literal = l.readNumber()
+			literal := l.readNumber()
+			if strings.Contains(literal, ".") {
+				tok.Type = token.FLOAT
+			} else {
+				tok.Type = token.INT
+			}
+			tok.Literal = literal
 			return tok
 		} else {
 			tok = newToken(token.ILLEGAL, l.ch)
@@ -162,16 +188,22 @@ func (l *Lexer) skipWhiteSpace() {
 // At this point we have yet to support floats or hex notations and things alike
 func (l *Lexer) readNumber() string {
 	position := l.position
+	seenDot := false
 
 	// Keep reading characters as long as they are numerical values
 	for isDigit(l.ch) {
+		if l.ch == '.' {
+			if seenDot {
+				break // Do NOT allow multiple decimal points
+			}
+		}
 		l.readChar()
 	}
 	return l.input[position:l.position]
 }
 
 func isDigit(ch rune) bool {
-	return '0' <= ch && ch <= '9'
+	return '0' <= ch && ch <= '9' || ch == '.'
 }
 
 func (l *Lexer) readString() string {

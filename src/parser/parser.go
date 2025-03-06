@@ -12,6 +12,7 @@ import (
 const (
 	_ int = iota // Give the following constants incrementing numbers as value
 	LOWEST
+	POSTFIX     // x++ or x--
 	EQUALS      // ==
 	CONDITIONAL // ? and :
 	LESSGREATER // > or <
@@ -25,19 +26,23 @@ const (
 
 // Precedence table - Map token types with their precedence
 var precedences = map[token.TokenType]int{
-	token.EQ:       EQUALS,
-	token.NOT_EQ:   EQUALS,
-	token.LT:       LESSGREATER,
-	token.GT:       LESSGREATER,
-	token.PLUS:     SUM,
-	token.MINUS:    SUM,
-	token.SLASH:    PRODUCT,
-	token.ASTERISK: PRODUCT,
-	// token.EXPONENT: PRODUCT,
-	token.LPAREN:   CALL,
-	token.QUESTION: CONDITIONAL,
-	token.LBRACKET: INDEX,
-	token.TILDE:    BITWISE,
+	token.EQ:        EQUALS,
+	token.NOT_EQ:    EQUALS,
+	token.LT:        LESSGREATER,
+	token.GT:        LESSGREATER,
+	token.PLUS:      SUM,
+	token.MINUS:     SUM,
+	token.SLASH:     PRODUCT,
+	token.ASTERISK:  PRODUCT,
+	token.LPAREN:    CALL,
+	token.QUESTION:  CONDITIONAL,
+	token.LBRACKET:  INDEX,
+	token.TILDE:     BITWISE,
+	token.EXPONENT:  BITWISE,
+	token.PIPE:      BITWISE,
+	token.AMPERSAND: BITWISE,
+	token.RSHIFT:    BITWISE,
+	token.LSHIFT:    BITWISE,
 }
 
 type (
@@ -70,6 +75,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.prefixParseFns = make(map[token.TokenType]prefixParseFn)
 	p.registerPrefix(token.IDENT, p.parseIdentifier)
 	p.registerPrefix(token.INT, p.parseIntegerLiteral)
+	p.registerPrefix(token.FLOAT, p.parseFloatLiteral)
 	p.registerPrefix(token.BANG, p.parsePrefixExpression)
 	p.registerPrefix(token.TILDE, p.parsePrefixExpression)
 	p.registerPrefix(token.MINUS, p.parsePrefixExpression)
@@ -95,6 +101,11 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerInfix(token.LPAREN, p.parseCallExpression)
 	p.registerInfix(token.QUESTION, p.parseTernaryExpression)
 	p.registerInfix(token.LBRACKET, p.parseIndexExpression)
+	p.registerInfix(token.EXPONENT, p.parseInfixExpression)
+	p.registerInfix(token.PIPE, p.parseInfixExpression)
+	p.registerInfix(token.RSHIFT, p.parseInfixExpression)
+	p.registerInfix(token.LSHIFT, p.parseInfixExpression)
+	p.registerInfix(token.AMPERSAND, p.parseInfixExpression)
 	p.registerInfix(token.EXPONENT, p.parseInfixExpression)
 	return p
 }
@@ -305,6 +316,23 @@ func (p *Parser) parseIntegerLiteral() ast.Expression {
 	value, err := strconv.ParseInt(p.currentToken.Literal, 0, 64)
 	if err != nil {
 		msg := fmt.Sprintf("could not parse %q as integer", p.currentToken.Literal)
+		p.errors = append(p.errors, msg)
+		return nil
+	}
+
+	literal.Value = value
+
+	return literal
+}
+
+func (p *Parser) parseFloatLiteral() ast.Expression {
+	// defer untrace(trace("parseIntegerLiteral"))
+	literal := &ast.FloatLiteral{Token: p.currentToken}
+
+	// Automatically round to 6 decimal places
+	value, err := strconv.ParseFloat(p.currentToken.Literal, 64)
+	if err != nil {
+		msg := fmt.Sprintf("could not parse %q as float", p.currentToken.Literal)
 		p.errors = append(p.errors, msg)
 		return nil
 	}

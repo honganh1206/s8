@@ -2,6 +2,7 @@ package evaluator
 
 import (
 	"fmt"
+	"math"
 	"s8/src/ast"
 	"s8/src/object"
 )
@@ -14,6 +15,9 @@ var (
 	FALSE = &object.Boolean{Value: false}
 )
 
+const epsilon = 0.000001
+const precision = 6
+
 // Traverse the AST recursively
 func Eval(node ast.Node, env *object.Environment) object.Object {
 	switch node := node.(type) {
@@ -23,6 +27,8 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		return Eval(node.Expression, env)
 	case *ast.IntegerLiteral:
 		return &object.Integer{Value: node.Value}
+	case *ast.FloatLiteral:
+		return &object.Float{Value: toFixed(node.Value, precision)}
 	case *ast.Boolean:
 		return nativeBoolToBooleanObj(node.Value)
 	case *ast.PrefixExpression:
@@ -170,6 +176,8 @@ func evalPrefixExpression(operator string, right object.Object) object.Object {
 		return evalBangOperatorExpression(right)
 	case "-":
 		return evalMinusPrefixOperatorExpression(right)
+	case "~":
+		return evalBitwisePrefixNotOperatorExpression(right)
 	default:
 		return newError("unknown operator:%s%s", operator, right.Type())
 	}
@@ -190,12 +198,26 @@ func evalBangOperatorExpression(right object.Object) object.Object {
 }
 
 func evalMinusPrefixOperatorExpression(right object.Object) object.Object {
-	if right.Type() != object.INTERGER_OBJ {
+	switch right.Type() {
+	case object.INTERGER_OBJ:
+		value := right.(*object.Integer).Value
+		return &object.Integer{Value: -value}
+	case object.FLOAT_OBJ:
+		value := right.(*object.Float).Value
+		return &object.Float{Value: -value}
+	default:
 		return newError("unknown operator: -%s", right.Type())
 	}
 
+}
+
+func evalBitwisePrefixNotOperatorExpression(right object.Object) object.Object {
+	if right.Type() != object.INTERGER_OBJ {
+		return newError("bitwise operators not supported for type: %s", right.Type())
+	}
 	value := right.(*object.Integer).Value
-	return &object.Integer{Value: -value}
+
+	return &object.Integer{Value: ^value}
 }
 
 func evalInfixExpression(operator string, left, right object.Object) object.Object {
@@ -204,6 +226,8 @@ func evalInfixExpression(operator string, left, right object.Object) object.Obje
 	// Since we are always allocating NEW instances of object.Integer
 	case left.Type() == object.INTERGER_OBJ && right.Type() == object.INTERGER_OBJ:
 		return evalIntegerInfixExpression(operator, left, right)
+	case left.Type() == object.FLOAT_OBJ && right.Type() == object.FLOAT_OBJ:
+		return evalFloatInfixExpression(operator, left, right)
 	case left.Type() == object.STRING_OBJ && right.Type() == object.STRING_OBJ:
 		return evalStringInfixExpression(operator, left, right)
 		// For cases like TRUE == TRUE
@@ -233,7 +257,20 @@ func evalIntegerInfixExpression(operator string, left, right object.Object) obje
 	case "*":
 		return &object.Integer{Value: leftVal * rightVal}
 	case "/":
+		if rightVal == 0 {
+			return newError("division by zero")
+		}
 		return &object.Integer{Value: leftVal / rightVal}
+	case ">>":
+		return &object.Integer{Value: leftVal >> rightVal}
+	case "<<":
+		return &object.Integer{Value: leftVal << rightVal}
+	case "|":
+		return &object.Integer{Value: leftVal | rightVal}
+	case "&":
+		return &object.Integer{Value: leftVal & rightVal}
+	case "^":
+		return &object.Integer{Value: leftVal ^ rightVal}
 	// Group 2: Produce booleans as their results
 	case "<":
 		return nativeBoolToBooleanObj(leftVal < rightVal)
@@ -246,6 +283,53 @@ func evalIntegerInfixExpression(operator string, left, right object.Object) obje
 	default:
 		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
 	}
+}
+
+func evalFloatInfixExpression(operator string, left, right object.Object) object.Object {
+	// Round up to 6th decimal place
+	leftVal := left.(*object.Float).Value
+	rightVal := right.(*object.Float).Value
+
+	switch operator {
+	case "+":
+		return &object.Float{Value: toFixed(leftVal+rightVal, precision)}
+	case "-":
+		return &object.Float{Value: leftVal - rightVal}
+	case "*":
+		return &object.Float{Value: leftVal * rightVal}
+	case "/":
+		if rightVal == 0 {
+			return newError("division by zero")
+		}
+		return &object.Float{Value: toFixed(leftVal/rightVal, precision)}
+	case "<":
+		return nativeBoolToBooleanObj(leftVal < rightVal)
+	case ">":
+		return nativeBoolToBooleanObj(leftVal > rightVal)
+	case "==":
+		return nativeBoolToBooleanObj(math.Abs(leftVal-rightVal) < epsilon)
+	case "!=":
+		return nativeBoolToBooleanObj(math.Abs(leftVal-rightVal) >= epsilon)
+	default:
+		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
+	}
+}
+
+// Round a floating-point number to the nearest integer
+//
+//	Examples:
+//
+// - round(3.7) → 3.7 + 0.5 = 4.2 → 4
+// - round(3.2) → 3.2 + 0.5 = 3.7 → 3
+// - round(-3.7) → -3.7 - 0.5 = -4.2 → -4
+func round(value float64) int {
+	return int(value + math.Copysign(0.5, value))
+}
+
+// Round a floating-point number to a specified number of decimal places (precision)
+func toFixed(value float64, precision int) float64 {
+	output := math.Pow(10, float64(precision))
+	return float64(round(value*output)) / output
 }
 
 func evalIfExpression(ie *ast.IfExpression, env *object.Environment) object.Object {

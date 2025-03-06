@@ -27,12 +27,50 @@ func TestEvalIntegerExpression(t *testing.T) {
 		{"3 * 3 * 3 + 10", 37},
 		{"3 * (3 * 3) + 10", 37},
 		{"(5 + 10 * 2 + 15 / 3) * 2 + -10", 50},
-		{"5 ^ 2", 25},
+		{"~5", -6}, // Bitwise NOT
+		{"5 >> 1", 2},
+		{"5 << 1", 10},
+		{"5 | 5", 5},
+		{"5 & 5", 5},
+		{"5 ^ 5", 0},
 	}
 
 	for _, tt := range tests {
 		evaluated := testEval(tt.input)
 		testIntegerObject(t, evaluated, tt.expected)
+	}
+}
+
+func TestEvalFloatExpression(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected float64
+	}{
+		{"5.0", 5.000000},
+		{"10.5", 10.500000},
+		{"-5.25", -5.250000},
+		{"-10.75", -10.750000},
+		{"5.5 + 5.25 + 5.125 + 5.625 - 10.5", 11.000000},
+		{"2.5 * 2.5", 6.250000},
+		{"-50.5 + 100.25 + -50.25", -0.500000},
+		{"5.5 * 2.5 + 10.25", 24.000000},
+		{"5.25 + 2.5 * 10.125", 30.562500},
+		{"20.5 + 2.25 * -10.5", -3.125000},
+		{"50.5 / 2.5 * 2.25 + 10.125", 55.575},
+		{"2.5 * (5.25 + 10.125)", 38.437500},
+		{"3.5 * 3.5 * 3.5 + 10.125", 53.000000},
+		{"3.25 * (3.25 * 3.25) + 10.5", 44.828125},
+		{"(5.5 + 10.25 * 2.5 + 15.75 / 3.25) * 2.5 + -10.25", 79.677885},
+		{"1.23456789", 1.234568},    // Testing rounding
+		{"0.333333333", 0.333333},   // Testing precision limit
+		{"1.0 / 3.0", 0.333333},     // Division resulting in repeating decimal
+		{"0.1 + 0.2", 0.300000},     // Common floating-point precision test
+		{"3.14159265359", 3.141593}, // Pi rounded to 6 decimal places
+	}
+
+	for _, tt := range tests {
+		evaluated := testEval(tt.input)
+		testFloatObject(t, evaluated, tt.expected)
 	}
 }
 
@@ -321,6 +359,7 @@ func TestBuiltinFunction(t *testing.T) {
 		{`let arr = [1, 2 ,3]; last(arr)`, 3},
 		{`let arr = [1, 2 ,3]; rest(arr)`, [2]int{2, 3}},
 		{`let arr = [1, 2 ,3]; push(arr, 4)`, [4]int{1, 2, 3, 4}},
+		{`power(2, 3)`, 8},
 		{`len(1)`, "argument to `len` not supported. got: INTEGER"},
 		{`len("one", "two")`, "wrong number of arguments. got: 2, want: 1"},
 	}
@@ -613,6 +652,21 @@ func testIntegerObject(t *testing.T, obj object.Object, expected int64) bool {
 		return false
 	}
 
+	return true
+}
+
+func testFloatObject(t *testing.T, obj object.Object, expected float64) bool {
+	result, ok := obj.(*object.Float)
+	if !ok {
+		// %+v is the enhanced version of %v which prints the default representation
+		t.Errorf("object is not Float. got: %T (%+v)", obj, obj)
+		return false
+	}
+
+	if result.Value != expected {
+		t.Errorf("object has wrong value. got: %f, want: %f", result.Value, expected)
+		return false
+	}
 	return true
 }
 

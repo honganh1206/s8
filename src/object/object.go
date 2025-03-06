@@ -40,10 +40,6 @@ func (i *Integer) Inspect() string { return fmt.Sprintf("%d", i.Value) }
 
 func (i *Integer) Type() ObjectType { return INTERGER_OBJ }
 
-type Boolean struct {
-	Value bool
-}
-
 type Float struct {
 	Value float64
 }
@@ -51,6 +47,10 @@ type Float struct {
 func (f *Float) Inspect() string { return fmt.Sprintf("%f", f.Value) }
 
 func (f *Float) Type() ObjectType { return FLOAT_OBJ }
+
+type Boolean struct {
+	Value bool
+}
 
 func (b *Boolean) Type() ObjectType { return BOOLEAN_OBJ }
 

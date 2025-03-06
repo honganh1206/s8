@@ -8,14 +8,16 @@ import (
 func TestNextToken(t *testing.T) {
 	input := `let five = 5;
 let ten = 10;
+let fl = 10.0;
 
 let add = funk(x, y) {
 	x + y;
 };
 
 let result = add(five, ten);
-!-/*?~5;
+!-/*?~|5;
 5 < 10 > 5;
+3 >> 2; 5 << 6; 5 & 6; 5 ^ 6;
 
 if (5 < 10) {
 	return true;
@@ -25,6 +27,9 @@ if (5 < 10) {
 
 10 == 10;
 10 != 9;
+5++;++5
+5--;--5
+
 "foobar"
 "foo bar"
 [1, 2];
@@ -45,6 +50,12 @@ if (5 < 10) {
 		{token.IDENT, "ten"},
 		{token.ASSIGN, "="},
 		{token.INT, "10"},
+		{token.SEMICOLON, ";"},
+
+		{token.LET, "let"},
+		{token.IDENT, "fl"},
+		{token.ASSIGN, "="},
+		{token.FLOAT, "10.0"},
 		{token.SEMICOLON, ";"},
 
 		{token.LET, "let"},
@@ -81,6 +92,7 @@ if (5 < 10) {
 		{token.ASTERISK, "*"},
 		{token.QUESTION, "?"},
 		{token.TILDE, "~"},
+		{token.PIPE, "|"},
 		{token.INT, "5"},
 		{token.SEMICOLON, ";"},
 
@@ -89,6 +101,23 @@ if (5 < 10) {
 		{token.INT, "10"},
 		{token.GT, ">"},
 		{token.INT, "5"},
+		{token.SEMICOLON, ";"},
+
+		{token.INT, "3"},
+		{token.RSHIFT, ">>"},
+		{token.INT, "2"},
+		{token.SEMICOLON, ";"},
+		{token.INT, "5"},
+		{token.LSHIFT, "<<"},
+		{token.INT, "6"},
+		{token.SEMICOLON, ";"},
+		{token.INT, "5"},
+		{token.AMPERSAND, "&"},
+		{token.INT, "6"},
+		{token.SEMICOLON, ";"},
+		{token.INT, "5"},
+		{token.EXPONENT, "^"},
+		{token.INT, "6"},
 		{token.SEMICOLON, ";"},
 
 		{token.IF, "if"},
@@ -117,6 +146,18 @@ if (5 < 10) {
 		{token.NOT_EQ, "!="},
 		{token.INT, "9"},
 		{token.SEMICOLON, ";"},
+
+		{token.INT, "5"},
+		{token.INCREMENT, "++"},
+		{token.SEMICOLON, ";"},
+		{token.INCREMENT, "++"},
+		{token.INT, "5"},
+
+		{token.INT, "5"},
+		{token.DECREMENT, "--"},
+		{token.SEMICOLON, ";"},
+		{token.DECREMENT, "--"},
+		{token.INT, "5"},
 
 		{token.STRING, "foobar"},
 		{token.STRING, "foo bar"},
