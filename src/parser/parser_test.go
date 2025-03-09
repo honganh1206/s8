@@ -318,6 +318,49 @@ func TestParsingInfixExpressions(t *testing.T) {
 	}
 }
 
+func TestParsingPostfixExpressions(t *testing.T) {
+	postfixTests := []struct {
+		input    string
+		operator string
+		value    interface{}
+	}{
+		{"5++;", "++", 5},
+		{"10++;", "++", 10},
+		{"5--;", "--", 5},
+		{"10--;", "--", 10},
+	}
+
+	for _, tt := range postfixTests {
+		l := lexer.New(tt.input)
+		p := New(l)
+		program := p.ParseProgram()
+		checkParserErrors(t, p)
+
+		if len(program.Statements) != 1 {
+			t.Fatalf("program.Statements does not contain %d statements. got: %d", 1, len(program.Statements))
+		}
+
+		stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+		if !ok {
+			t.Fatalf("program.Statements[0] is not ast.ExpressionStatement. got: %T", program.Statements[0])
+		}
+
+		exp, ok := stmt.Expression.(*ast.PostfixExpression)
+		if !ok {
+			t.Fatalf("exp not *ast.PostfixExpression. got=%T", stmt.Expression)
+		}
+
+		if exp.Operator != tt.operator {
+			t.Fatalf("exp.Operator is not '%s'. got=%s", tt.operator, exp.Operator)
+		}
+
+		if !testLiteralExpression(t, exp.Left, tt.value) {
+			return
+		}
+
+	}
+}
+
 func TestOperatorPrecedenceParsing(t *testing.T) {
 	tests := []struct {
 		input    string
@@ -443,6 +486,55 @@ func TestOperatorPrecedenceParsing(t *testing.T) {
 			"add(a * b[2], b[1], 2 * [1, 2][1])",
 			"add((a * (b[2])), (b[1]), (2 * ([1, 2][1])))",
 		},
+		{
+			"a++ + b",
+			"((a++) + b)",
+		},
+		{
+			"a-- - b",
+			"((a--) - b)",
+		},
+		{
+			"++a * b",
+			"((++a) * b)",
+		},
+		{
+			"--a / b",
+			"((--a) / b)",
+		},
+		{
+			"a + b++",
+			"(a + (b++))",
+		},
+		{
+			"a - b--",
+			"(a - (b--))",
+		},
+		// TODO: Fail test down from here
+		// {
+		// 	"(a++)++",
+		// 	"((a++)++)",
+		// },
+		// {
+		// 	"++a++",
+		// 	"((++a)++)",
+		// },
+		// {
+		// 	"a++ * b--",
+		// 	"((a++) * (b--))",
+		// },
+		// {
+		// 	"++a + ++b",
+		// 	"((++a) + (++b))",
+		// },
+		// {
+		// 	"a++ + b++",
+		// 	"((a++) + (b++))",
+		// },
+		// {
+		// 	"add(a++, b--)",
+		// 	"add((a++), (b--))",
+		// },
 	}
 	for _, tt := range tests {
 		l := lexer.New(tt.input)

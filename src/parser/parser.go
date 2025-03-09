@@ -12,7 +12,6 @@ import (
 const (
 	_ int = iota // Give the following constants incrementing numbers as value
 	LOWEST
-	POSTFIX     // x++ or x--
 	EQUALS      // ==
 	CONDITIONAL // ? and :
 	LESSGREATER // > or <
@@ -20,6 +19,7 @@ const (
 	SUM         // +
 	PRODUCT     // *
 	PREFIX      // -X or !X
+	POSTFIX     // x++ or x--
 	CALL        // myFunction(X)
 	INDEX       // arr[index]
 )
@@ -50,20 +50,23 @@ type (
 	// Infix parsing will ALWAYS has an expression before the operator
 	// The Expression-typed argument denotes the "left side" of the infix operator that is being parsed
 	// We call it infix but actually it is just ANYTHING BUT PREFIX
-	infixParseFn func(ast.Expression) ast.Expression
+	infixParseFn   func(ast.Expression) ast.Expression
+	postfixParseFn func(ast.Expression) ast.Expression
 )
 
 type Parser struct {
 	l            *lexer.Lexer // One and only instance of the lexer
 	currentToken token.Token  // work as the position field
 	peekToken    token.Token  // work as the readPosition field
+	prevToken    token.Token
 	errors       []string
 
 	// Check if either map has a parsing function associated with currentToken.Type
 	// Having separated tables for prefix and infix expressions is important
 	// As sometimes we use the same token for different expressions e.g., "(" for grouped expression (prefix) and for call expression (infix)
-	prefixParseFns map[token.TokenType]prefixParseFn
-	infixParseFns  map[token.TokenType]infixParseFn
+	prefixParseFns  map[token.TokenType]prefixParseFn
+	infixParseFns   map[token.TokenType]infixParseFn
+	postfixParseFns map[token.TokenType]postfixParseFn
 }
 
 func New(l *lexer.Lexer) *Parser {
@@ -89,6 +92,13 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.LBRACE, p.parseHashLiteral)
 	p.registerPrefix(token.TILDE, p.parsePrefixExpression)
 
+	// The actual determination of whether it's prefix or postfix
+	// should be done during parsing, not during registration
+	precedences[token.INCREMENT] = PREFIX
+	precedences[token.DECREMENT] = PREFIX
+	p.registerPrefix(token.INCREMENT, p.parsePrefixExpression)
+	p.registerPrefix(token.DECREMENT, p.parsePrefixExpression)
+
 	p.infixParseFns = make(map[token.TokenType]infixParseFn)
 	p.registerInfix(token.PLUS, p.parseInfixExpression)
 	p.registerInfix(token.MINUS, p.parseInfixExpression)
@@ -107,6 +117,13 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerInfix(token.LSHIFT, p.parseInfixExpression)
 	p.registerInfix(token.AMPERSAND, p.parseInfixExpression)
 	p.registerInfix(token.EXPONENT, p.parseInfixExpression)
+
+	p.postfixParseFns = make(map[token.TokenType]postfixParseFn)
+	precedences[token.INCREMENT] = POSTFIX
+	precedences[token.DECREMENT] = POSTFIX
+	p.registerPostfix(token.INCREMENT, p.parsePostfixExpression)
+	p.registerPostfix(token.DECREMENT, p.parsePostfixExpression)
+
 	return p
 }
 
@@ -137,6 +154,10 @@ func (p *Parser) registerInfix(tokenType token.TokenType, fn infixParseFn) {
 	p.infixParseFns[tokenType] = fn
 }
 
+func (p *Parser) registerPostfix(tokenType token.TokenType, fn postfixParseFn) {
+	p.postfixParseFns[tokenType] = fn
+}
+
 /*
 	HELPER METHODS
 */
@@ -148,6 +169,7 @@ func (p *Parser) peekError(t token.TokenType) {
 
 // Advance both of our p.currentToken and p.peekToken
 func (p *Parser) nextToken() {
+	p.prevToken = p.currentToken
 	p.currentToken = p.peekToken
 	p.peekToken = p.l.NextToken()
 }
@@ -169,6 +191,10 @@ func (p *Parser) peekTokenIs(t token.TokenType) bool {
 
 func (p *Parser) currentTokenIs(t token.TokenType) bool {
 	return p.currentToken.Type == t
+}
+
+func (p *Parser) previousTokenIs(t token.TokenType) bool {
+	return p.prevToken.Type == t
 }
 
 // Strengthen left-binding power
@@ -270,7 +296,7 @@ func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
 // Returning an interface type value, so we do not use pointer here
 func (p *Parser) parseExpression(precedence int) ast.Expression {
 	// defer untrace(trace("parseExpression"))
-	// Note: Prefix operators have higher precedence than infix operator
+	// Prefix operators have higher precedence than infix operator, but lower than postfix operator
 	// So prefix expressions stay as a separate unit
 	prefix := p.prefixParseFns[p.currentToken.Type]
 
@@ -284,17 +310,32 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 	// The default precedence is LOWEST
 	// Then we might increase the precedence with each call to parseExpression
 	for !p.peekTokenIs(token.SEMICOLON) && precedence < p.peekPrecedence() {
-		infix := p.infixParseFns[p.peekToken.Type]
+		// Current position is the left expression
+		if !p.peekTokenIs(token.INCREMENT) && !p.peekTokenIs(token.DECREMENT) {
+			infix := p.infixParseFns[p.peekToken.Type]
 
-		if infix == nil {
-			return leftExp
+			if infix == nil {
+				return leftExp
+			}
+			p.nextToken() // Advance to the infix operator
+
+			// The peek token is now the left expression
+			// While the right expression is passed in the infix parsing function
+			leftExp = infix(leftExp)
+			continue // Continue to handle other cases like using both pre/postfix with infix
+		} else {
+			if !p.currentTokenIs(token.IDENT) && !p.currentTokenIs(token.INT) {
+				return leftExp
+			}
+
+			p.nextToken() // Move to the postfix operator
+			postfix := p.postfixParseFns[p.currentToken.Type]
+			if postfix == nil {
+				p.noPostfixParseFnError(p.currentToken.Type)
+				return nil
+			}
+			leftExp = postfix(leftExp)
 		}
-
-		p.nextToken()
-
-		// The peek token is now the left expression
-		// While the right expression is passed in the infix parsing function
-		leftExp = infix(leftExp)
 	}
 
 	return leftExp
@@ -302,6 +343,11 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 
 func (p *Parser) noPrefixParseFnError(t token.TokenType) {
 	msg := fmt.Sprintf("no prefix parse function for %s found", t)
+	p.errors = append(p.errors, msg)
+}
+
+func (p *Parser) noPostfixParseFnError(t token.TokenType) {
+	msg := fmt.Sprintf("no postfix parse function for %s found", t)
 	p.errors = append(p.errors, msg)
 }
 
@@ -379,6 +425,17 @@ func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
 	// }
 
 	return expr
+}
+
+// At this point we already parsed the left expression
+// We thus need to consider parsing the precedence
+func (p *Parser) parsePostfixExpression(left ast.Expression) ast.Expression {
+	// Current token is the postfix operator
+	return &ast.PostfixExpression{
+		Token:    p.currentToken,
+		Left:     left,
+		Operator: p.currentToken.Literal,
+	}
 }
 
 func (p *Parser) parseBoolean() ast.Expression {
