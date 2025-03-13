@@ -41,6 +41,34 @@ func TestEvalIntegerExpression(t *testing.T) {
 	}
 }
 
+func TestPrefixIncrementExpression(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected int64
+	}{
+		{"let x = 5; x++", 5},    // Returns original value
+		{"let x = 5; x--", 5},    // Returns original value
+		{"let x = 5; x++; x", 6}, // Check value after increment
+		{"let x = 5; x--; x", 4}, // Check value after decrement
+
+		{"let x = 5; x++; x++", 6}, // Second ++ should return 6
+		{"let x = 5; x++; x--", 6}, // Returns 6 then decrements
+
+		// Arithmetic with postfix
+		{"let x = 5; let y = 3; x++ + y", 8},   // 5 + 3, then x becomes 6
+		{"let x = 5; let y = 3; x++ + y++", 8}, // 5 + 3, then x and y increment
+
+		// Complex expressions
+		{"let x = 5; (x++) + 2", 7},
+		{"let x = 5; let y = x++; y", 5}, // Assignment captures original value
+	}
+
+	for _, tt := range tests {
+		evaluated := testEval(tt.input)
+		testIntegerObject(t, evaluated, tt.expected)
+	}
+}
+
 func TestEvalFloatExpression(t *testing.T) {
 	tests := []struct {
 		input    string
@@ -249,6 +277,18 @@ return 1;
 		{
 			`{"name": "Monkey"}[funk(x) { x }];`,
 			"unusable as a hash key: FUNCTION",
+		},
+		{
+			"5++",
+			"cannot apply postfix operator to literal",
+		},
+		{
+			"x++ ++",
+			"cannot apply multiple postfix operators",
+		},
+		{
+			"(x++)++",
+			"cannot apply postfix operator to postfix expression",
 		},
 	}
 

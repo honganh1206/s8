@@ -36,7 +36,7 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		if isError(right) {
 			return right
 		}
-		return evalPrefixExpression(node.Operator, right)
+		return evalPrefixExpression(node.Operator, right, env)
 	case *ast.InfixExpression:
 		left := Eval(node.Left, env)
 		if isError(left) {
@@ -48,6 +48,12 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 			return right
 		}
 		return evalInfixExpression(node.Operator, left, right)
+	// case *ast.PostfixExpression:
+	// 	left := Eval(node.Left, env)
+	// 	if isError(left) {
+	// 		return left
+	// 	}
+	// 	return evalPostfixExpression(node.Operator, left)
 	case *ast.BlockStatement:
 		return evalBlockStatement(node, env)
 	case *ast.IfExpression:
@@ -170,7 +176,7 @@ func nativeBoolToBooleanObj(input bool) *object.Boolean {
 	return FALSE
 }
 
-func evalPrefixExpression(operator string, right object.Object) object.Object {
+func evalPrefixExpression(operator string, right object.Object, env *object.Environment) object.Object {
 	switch operator {
 	case "!":
 		return evalBangOperatorExpression(right)
@@ -178,6 +184,10 @@ func evalPrefixExpression(operator string, right object.Object) object.Object {
 		return evalMinusPrefixOperatorExpression(right)
 	case "~":
 		return evalBitwisePrefixNotOperatorExpression(right)
+	case "++":
+		return evalIncrementPrefixOperatorExpression(right, env)
+	case "--":
+		return evalDecrementPrefixOperatorExpression(right, env)
 	default:
 		return newError("unknown operator:%s%s", operator, right.Type())
 	}
@@ -218,6 +228,18 @@ func evalBitwisePrefixNotOperatorExpression(right object.Object) object.Object {
 	value := right.(*object.Integer).Value
 
 	return &object.Integer{Value: ^value}
+}
+
+func evalIncrementPrefixOperatorExpression(right object.Object, env *object.Environment) object.Object {
+	ident, ok := right.(*object.Identifier)
+	if !ok {
+		return newError("cannot increment non-identifier: %s", right.Type())
+	}
+
+	current, err := env.Get(ident.Value)
+	if current == nil {
+		return newError("identifier value not found: %s", ident.Value)
+	}
 }
 
 func evalInfixExpression(operator string, left, right object.Object) object.Object {
@@ -378,7 +400,7 @@ func evalIdentifier(node *ast.Identifier, env *object.Environment) object.Object
 		return val
 	}
 
-	// Search through builtins' separate env
+	// Check if it's a builtin function
 	if builtin, ok := builtins[node.Value]; ok {
 		return builtin
 	}

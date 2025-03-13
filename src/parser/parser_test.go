@@ -26,7 +26,7 @@ func TestLetStatements(t *testing.T) {
 	tests := []struct {
 		input              string
 		expectedIdentifier string
-		expectedValue      interface{}
+		expectedValue      any
 	}{
 		{"let x = 5;", "x", 5},
 		{"let y = 10;", "y", 10},
@@ -92,7 +92,7 @@ func testLetStatement(t *testing.T, s ast.Statement, name string) bool {
 func TestReturnStatements(t *testing.T) {
 	tests := []struct {
 		input         string
-		expectedValue interface{}
+		expectedValue any
 	}{
 		{"return 5;", 5},
 		{"return 10;", 10},
@@ -227,7 +227,7 @@ func TestParsingPrefixExpressions(t *testing.T) {
 	prefixTests := []struct {
 		input    string
 		operator string
-		value    interface{}
+		value    any
 	}{
 		{"!5", "!", 5},
 		{"!5.000000", "!", 5.000000},
@@ -237,6 +237,7 @@ func TestParsingPrefixExpressions(t *testing.T) {
 		{"~5;", "~", 5},
 		{"++5", "++", 5},
 		{"--5", "--", 5},
+		{"--5.0", "--", 5.0},
 	}
 
 	for _, tt := range prefixTests {
@@ -275,9 +276,9 @@ func TestParsingPrefixExpressions(t *testing.T) {
 func TestParsingInfixExpressions(t *testing.T) {
 	infixTests := []struct {
 		input      string
-		leftValue  interface{}
+		leftValue  any
 		operator   string
-		rightValue interface{}
+		rightValue any
 	}{
 		{"5 + 5;", 5, "+", 5},
 		{"5 - 5;", 5, "-", 5},
@@ -322,12 +323,13 @@ func TestParsingPostfixExpressions(t *testing.T) {
 	postfixTests := []struct {
 		input    string
 		operator string
-		value    interface{}
+		value    any
 	}{
 		{"5++;", "++", 5},
 		{"10++;", "++", 10},
 		{"5--;", "--", 5},
 		{"10--;", "--", 10},
+		{"10.0--;", "--", 10.0},
 	}
 
 	for _, tt := range postfixTests {
@@ -510,8 +512,8 @@ func TestOperatorPrecedenceParsing(t *testing.T) {
 			"a - b--",
 			"(a - (b--))",
 		},
-		// TODO: Fail test down from here
 		// {
+		// 	// This is wrong by default of many lannguages
 		// 	"(a++)++",
 		// 	"((a++)++)",
 		// },
@@ -519,22 +521,22 @@ func TestOperatorPrecedenceParsing(t *testing.T) {
 		// 	"++a++",
 		// 	"((++a)++)",
 		// },
-		// {
-		// 	"a++ * b--",
-		// 	"((a++) * (b--))",
-		// },
-		// {
-		// 	"++a + ++b",
-		// 	"((++a) + (++b))",
-		// },
-		// {
-		// 	"a++ + b++",
-		// 	"((a++) + (b++))",
-		// },
-		// {
-		// 	"add(a++, b--)",
-		// 	"add((a++), (b--))",
-		// },
+		{
+			"a++ * b--",
+			"((a++) * (b--))",
+		},
+		{
+			"++a + ++b",
+			"((++a) + (++b))",
+		},
+		{
+			"a++ + b++",
+			"((a++) + (b++))",
+		},
+		{
+			"add(a++, b--)",
+			"add((a++), (b--))",
+		},
 	}
 	for _, tt := range tests {
 		l := lexer.New(tt.input)
@@ -1036,7 +1038,7 @@ func TestParsingEmptyHashLiteral(t *testing.T) {
 	TEST HELPERS
 */
 
-func testLiteralExpression(t *testing.T, expr ast.Expression, expected interface{}) bool {
+func testLiteralExpression(t *testing.T, expr ast.Expression, expected any) bool {
 	switch v := expected.(type) {
 	case int:
 		return testIntegerLiteral(t, expr, int64(v))
@@ -1118,7 +1120,7 @@ func testIdentifier(t *testing.T, expr ast.Expression, value string) bool {
 	return true
 }
 
-func testInfixExpression(t *testing.T, expr ast.Expression, left, right interface{}, operator string) bool {
+func testInfixExpression(t *testing.T, expr ast.Expression, left, right any, operator string) bool {
 	opExpr, ok := expr.(*ast.InfixExpression)
 
 	if !ok {
