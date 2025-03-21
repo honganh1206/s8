@@ -324,11 +324,12 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 			leftExp = infix(leftExp)
 			continue // Continue to handle other cases like using both pre/postfix with infix
 		} else {
-			if !p.currentTokenIs(token.IDENT) && !p.currentTokenIs(token.INT) {
+			if !p.currentTokenIs(token.IDENT) && !p.currentTokenIs(token.INT) && !p.currentTokenIs(token.FLOAT) {
 				return leftExp
 			}
 
 			p.nextToken() // Move to the postfix operator
+
 			postfix := p.postfixParseFns[p.currentToken.Type]
 			if postfix == nil {
 				p.noPostfixParseFnError(p.currentToken.Type)

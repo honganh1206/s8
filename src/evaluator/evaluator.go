@@ -36,7 +36,7 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		if isError(right) {
 			return right
 		}
-		return evalPrefixExpression(node.Operator, right, env)
+		return evalPrefixExpression(node, right, env)
 	case *ast.InfixExpression:
 		left := Eval(node.Left, env)
 		if isError(left) {
@@ -176,8 +176,8 @@ func nativeBoolToBooleanObj(input bool) *object.Boolean {
 	return FALSE
 }
 
-func evalPrefixExpression(operator string, right object.Object, env *object.Environment) object.Object {
-	switch operator {
+func evalPrefixExpression(node *ast.PrefixExpression, right object.Object, env *object.Environment) object.Object {
+	switch node.Operator {
 	case "!":
 		return evalBangOperatorExpression(right)
 	case "-":
@@ -185,11 +185,11 @@ func evalPrefixExpression(operator string, right object.Object, env *object.Envi
 	case "~":
 		return evalBitwisePrefixNotOperatorExpression(right)
 	case "++":
-		return evalIncrementPrefixOperatorExpression(right, env)
-	case "--":
-		return evalDecrementPrefixOperatorExpression(right, env)
+		return evalIncrementPrefixOperatorExpression(node, right, env)
+	// case "--":
+	// 	return evalDecrementPrefixOperatorExpression(right, env)
 	default:
-		return newError("unknown operator:%s%s", operator, right.Type())
+		return newError("unknown operator:%s%s", node.Operator, right.Type())
 	}
 }
 
@@ -230,16 +230,24 @@ func evalBitwisePrefixNotOperatorExpression(right object.Object) object.Object {
 	return &object.Integer{Value: ^value}
 }
 
-func evalIncrementPrefixOperatorExpression(right object.Object, env *object.Environment) object.Object {
-	ident, ok := right.(*object.Identifier)
+func evalIncrementPrefixOperatorExpression(node *ast.PrefixExpression, right object.Object, env *object.Environment) object.Object {
+	ident, ok := node.Right.(*ast.Identifier)
+
 	if !ok {
 		return newError("cannot increment non-identifier: %s", right.Type())
 	}
 
-	current, err := env.Get(ident.Value)
-	if current == nil {
-		return newError("identifier value not found: %s", ident.Value)
+	val, ok := right.(*object.Integer)
+
+	if !ok {
+		return newError("cannot increment non-integer: %s", right.Type())
 	}
+
+	increVal := val.Value + 1
+
+	returnVal := &object.Integer{Value: increVal}
+	env.Set(ident.Value, returnVal)
+	return returnVal
 }
 
 func evalInfixExpression(operator string, left, right object.Object) object.Object {

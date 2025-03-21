@@ -14,16 +14,27 @@ This is based on the books "Writing An Interpreter In Go" and "Writing A Compile
 - [>] `++` for incrementing and `--` for decrementing (Both postfix/infix and prefix)
 - Object types
 - [x] Float
+- [>] Identifier
 - [ ] Double
 - [ ] Lambdas (We already have that I think?)
+- [ ] LazyObject
+- [ ] Comments
 - Statements
+- [ ] Iterators
 - [ ] `switch` statement
 - [ ] `foreach` statement
+- Builtins
+- [ ] `sleep`
+- [ ] `map`
 
-### Future plans
+## Future plans
 
 - [ ] A custom garbage collector in C
 - [ ] Rewrite the language in Rust
+
+## Repos for reference
+
+- [OK?](https://github.com/jesseduffield/OK)
 
 ---
 

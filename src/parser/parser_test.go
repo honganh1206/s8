@@ -230,7 +230,7 @@ func TestParsingPrefixExpressions(t *testing.T) {
 		value    any
 	}{
 		{"!5", "!", 5},
-		{"!5.000000", "!", 5.000000},
+		{"!5.0", "!", 5.0},
 		{"-15;", "-", 15},
 		{"!true;", "!", true},
 		{"!false;", "!", false},
@@ -1091,8 +1091,9 @@ func testFloatLiteral(t *testing.T, expr ast.Expression, value float64) bool {
 		return false
 	}
 
-	if fl.TokenLiteral() != fmt.Sprintf("%f", value) {
-		t.Errorf("fl.TokenLiteral() not %f. got: %s", value, fl.TokenLiteral())
+	// One decimal point representation
+	if fl.TokenLiteral() != fmt.Sprintf("%.1f", value) {
+		t.Errorf("fl.TokenLiteral() not %.1f. got: %s", value, fl.TokenLiteral())
 		return false
 	}
 

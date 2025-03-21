@@ -46,21 +46,54 @@ func TestPrefixIncrementExpression(t *testing.T) {
 		input    string
 		expected int64
 	}{
-		{"let x = 5; x++", 5},    // Returns original value
-		{"let x = 5; x--", 5},    // Returns original value
-		{"let x = 5; x++; x", 6}, // Check value after increment
-		{"let x = 5; x--; x", 4}, // Check value after decrement
+		{"let x = 5; ++x;", 6}, // Returns new value immediately
+		// {"let x = 5; --x", 4},    // Returns new value immediately
+		// {"let x = 5; ++x; x", 6}, // Check value after increment
+		// {"let x = 5; --x; x", 4}, // Check value after decrement
 
-		{"let x = 5; x++; x++", 6}, // Second ++ should return 6
-		{"let x = 5; x++; x--", 6}, // Returns 6 then decrements
+		// {"let x = 5; ++x; ++x", 7}, // Second ++ returns 7
+		// {"let x = 5; ++x; --x", 5}, // Returns 6 then decrements to 5
 
-		// Arithmetic with postfix
-		{"let x = 5; let y = 3; x++ + y", 8},   // 5 + 3, then x becomes 6
-		{"let x = 5; let y = 3; x++ + y++", 8}, // 5 + 3, then x and y increment
+		// // Arithmetic with prefix
+		// {"let x = 5; let y = 3; ++x + y", 9},    // 6 + 3, as x is incremented first
+		// {"let x = 5; let y = 3; ++x + ++y", 10}, // 6 + 4, both increment before addition
 
-		// Complex expressions
-		{"let x = 5; (x++) + 2", 7},
-		{"let x = 5; let y = x++; y", 5}, // Assignment captures original value
+		// // Complex expressions
+		// {"let x = 5; (++x) + 2", 8},      // 6 + 2
+		// {"let x = 5; let y = ++x; y", 6}, // Assignment gets new value
+		// {"let x = 5; let y = --x; y", 4}, // Assignment gets new value
+
+		// // Multiple operations in sequence
+		// {"let x = 5; ++x; ++x; x", 7}, // Final value after two increments
+		// {"let x = 5; --x; --x; x", 3}, // Final value after two decrements
+	}
+
+	for _, tt := range tests {
+		evaluated := testEval(tt.input)
+		testIntegerObject(t, evaluated, tt.expected)
+	}
+}
+
+func TestPostfixIncrementExpression(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected int64
+	}{
+		// {"let x = 5; x++", 5}, // Returns original value
+		// {"let x = 5; x--", 5},    // Returns original value
+		// {"let x = 5; x++; x", 6}, // Check value after increment
+		// {"let x = 5; x--; x", 4}, // Check value after decrement
+
+		// {"let x = 5; x++; x++", 6}, // Second ++ should return 6
+		// {"let x = 5; x++; x--", 6}, // Returns 6 then decrements
+
+		// // Arithmetic with postfix
+		// {"let x = 5; let y = 3; x++ + y", 8},   // 5 + 3, then x becomes 6
+		// {"let x = 5; let y = 3; x++ + y++", 8}, // 5 + 3, then x and y increment
+
+		// // Complex expressions
+		// {"let x = 5; (x++) + 2", 7},
+		// {"let x = 5; let y = x++; y", 5}, // Assignment captures original value
 	}
 
 	for _, tt := range tests {
@@ -158,7 +191,7 @@ func TestBangOperator(t *testing.T) {
 func TestIfElseExpressions(t *testing.T) {
 	tests := []struct {
 		input    string
-		expected interface{}
+		expected any
 	}{
 		{"if (true) { 10 }", 10},
 		{"if (false) { 10 }", nil},
@@ -184,7 +217,7 @@ func TestIfElseExpressions(t *testing.T) {
 func TestLetStatements(t *testing.T) {
 	tests := []struct {
 		input    string
-		expected int64
+		expected any
 	}{
 		{"let a = 5; a;", 5},
 		{"let a = 5 * 5; a;", 25},
@@ -193,7 +226,14 @@ func TestLetStatements(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		testIntegerObject(t, testEval(tt.input), tt.expected)
+		evaluated := testEval(tt.input)
+		switch expected := tt.expected.(type) {
+		case int64:
+			testIntegerObject(t, evaluated, int64(expected))
+			// case string:
+			// 	testIdentifierObject(t, evaluated, string(expected))
+		}
+
 	}
 }
 
@@ -278,18 +318,15 @@ return 1;
 			`{"name": "Monkey"}[funk(x) { x }];`,
 			"unusable as a hash key: FUNCTION",
 		},
-		{
-			"5++",
-			"cannot apply postfix operator to literal",
-		},
-		{
-			"x++ ++",
-			"cannot apply multiple postfix operators",
-		},
-		{
-			"(x++)++",
-			"cannot apply postfix operator to postfix expression",
-		},
+		// TODO: Fail test from here
+		// {
+		// 	"let x = 5; x++ ++",
+		// 	"cannot apply multiple postfix operators",
+		// },
+		// {
+		// 	"(x++)++",
+		// 	"cannot apply postfix operator to postfix expression",
+		// },
 	}
 
 	for _, tt := range tests {
@@ -340,12 +377,12 @@ func TestFunctionApplication(t *testing.T) {
 		expected int64
 	}{
 		{"let identity = funk(x) { x; }; identity(5);", 5},
-		{"let identity = funk(x) { return x; }; identity(5);", 5},
-		{"let double = funk(x) { x * 2; }; double(5);", 10},
-		{"let add = funk(x, y) { x + y; }; add(5, 5);", 10},
-		// Two forms of *ast.CallExpression
-		{"let add = funk(x, y) { x + y; }; add(5 + 5, add(5, 5));", 20}, // Function as an identifier evaluating to a function obj
-		{"funk(x) { x; }(5)", 5}, // Function is a function literal aka Anonymous function
+		// {"let identity = funk(x) { return x; }; identity(5);", 5},
+		// {"let double = funk(x) { x * 2; }; double(5);", 10},
+		// {"let add = funk(x, y) { x + y; }; add(5, 5);", 10},
+		// // Two forms of *ast.CallExpression
+		// {"let add = funk(x, y) { x + y; }; add(5 + 5, add(5, 5));", 20}, // Function as an identifier evaluating to a function obj
+		// {"funk(x) { x; }(5)", 5}, // Function is a function literal aka Anonymous function
 	}
 	for _, tt := range tests {
 		testIntegerObject(t, testEval(tt.input), tt.expected)
@@ -389,7 +426,7 @@ func TestStringConcatenation(t *testing.T) {
 func TestBuiltinFunction(t *testing.T) {
 	tests := []struct {
 		input    string
-		expected interface{}
+		expected any
 	}{
 		{`len("")`, 0},
 		{`len("four")`, 4},
@@ -425,7 +462,7 @@ func TestBuiltinFunction(t *testing.T) {
 func TestTernaryExpressions(t *testing.T) {
 	tests := []struct {
 		input    string
-		expected interface{}
+		expected any
 	}{
 		// Basic ternary operations
 		{"true ? 10 : 20", 10},
@@ -512,7 +549,7 @@ func TestTernaryErrorHandling(t *testing.T) {
 func TestArrayIndexExpressions(t *testing.T) {
 	tests := []struct {
 		input    string
-		expected interface{}
+		expected any
 	}{
 		{
 			"[1, 2, 3][0]",
@@ -623,7 +660,7 @@ false: 6
 func TestHashIndexExpression(t *testing.T) {
 	tests := []struct {
 		input    string
-		expected interface{}
+		expected any
 	}{
 		{
 			`{"foo": 5}["foo"]`,

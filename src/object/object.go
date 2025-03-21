@@ -227,15 +227,3 @@ func (h *Hash) Inspect() string {
 type Hashable interface {
 	HashKey() HashKey
 }
-
-// TODO: Aadd object.Identifier
-// Since incrementing/decrementing integer/float objs are not recommended
-// If that is the case, where would the aftermath values be stored?
-
-type Identifier struct {
-	Value string
-}
-
-func (i *Identifier) Type() ObjectType { return IDENT_OBJ }
-
-func (i *Identifier) Inspect() string { return i.Value }
