@@ -5,6 +5,7 @@ import (
 	"math"
 	"s8/src/ast"
 	"s8/src/object"
+	"s8/src/token"
 )
 
 // To NOT create new instances of object.Boolean or object.Null and use reference instead
@@ -48,12 +49,12 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 			return right
 		}
 		return evalInfixExpression(node.Operator, left, right)
-	// case *ast.PostfixExpression:
-	// 	left := Eval(node.Left, env)
-	// 	if isError(left) {
-	// 		return left
-	// 	}
-	// 	return evalPostfixExpression(node.Operator, left)
+	case *ast.PostfixExpression:
+		left := Eval(node.Left, env)
+		if isError(left) {
+			return left
+		}
+		return evalPostfixExpression(node, left, env)
 	case *ast.BlockStatement:
 		return evalBlockStatement(node, env)
 	case *ast.IfExpression:
@@ -178,19 +179,25 @@ func nativeBoolToBooleanObj(input bool) *object.Boolean {
 
 func evalPrefixExpression(node *ast.PrefixExpression, right object.Object, env *object.Environment) object.Object {
 	switch node.Operator {
-	case "!":
+	case token.BANG:
 		return evalBangOperatorExpression(right)
-	case "-":
+	case token.MINUS:
 		return evalMinusPrefixOperatorExpression(right)
-	case "~":
+	case token.TILDE:
 		return evalBitwisePrefixNotOperatorExpression(right)
-	case "++":
-		return evalIncrementPrefixOperatorExpression(node, right, env)
-	// case "--":
-	// 	return evalDecrementPrefixOperatorExpression(right, env)
+	case token.INCREMENT, token.DECREMENT:
+		return evalIncreDecrePrefixOperatorExpression(node, right, env)
 	default:
 		return newError("unknown operator:%s%s", node.Operator, right.Type())
 	}
+}
+
+func evalPostfixExpression(node *ast.PostfixExpression, left object.Object, env *object.Environment) object.Object {
+	if node.Operator == token.INCREMENT || node.Operator == token.DECREMENT {
+		return evalIncreDecrePostfixOperatorExpression(node, left, env)
+	}
+
+	return newError("unknown operator:%s%s", node.Operator, left.Type())
 }
 
 func evalBangOperatorExpression(right object.Object) object.Object {
@@ -230,7 +237,7 @@ func evalBitwisePrefixNotOperatorExpression(right object.Object) object.Object {
 	return &object.Integer{Value: ^value}
 }
 
-func evalIncrementPrefixOperatorExpression(node *ast.PrefixExpression, right object.Object, env *object.Environment) object.Object {
+func evalIncreDecrePrefixOperatorExpression(node *ast.PrefixExpression, right object.Object, env *object.Environment) object.Object {
 	ident, ok := node.Right.(*ast.Identifier)
 
 	if !ok {
@@ -243,10 +250,42 @@ func evalIncrementPrefixOperatorExpression(node *ast.PrefixExpression, right obj
 		return newError("cannot increment non-integer: %s", right.Type())
 	}
 
-	increVal := val.Value + 1
+	var newVal int64
+	if node.Operator == token.INCREMENT {
+		newVal = val.Value + 1
+	} else if node.Operator == token.DECREMENT {
+		newVal = val.Value - 1
+	}
 
-	returnVal := &object.Integer{Value: increVal}
+	returnVal := &object.Integer{Value: newVal}
 	env.Set(ident.Value, returnVal)
+	return returnVal
+}
+
+func evalIncreDecrePostfixOperatorExpression(node *ast.PostfixExpression, left object.Object, env *object.Environment) object.Object {
+	ident, ok := node.Left.(*ast.Identifier)
+
+	if !ok {
+		return newError("cannot increment non-identifier: %s", left.Type())
+	}
+
+	val, ok := left.(*object.Integer)
+
+	if !ok {
+		return newError("cannot increment non-integer: %s", left.Type())
+	}
+
+	var newVal int64
+	if node.Operator == token.INCREMENT {
+		newVal = val.Value + 1
+	} else if node.Operator == token.DECREMENT {
+		newVal = val.Value - 1
+	}
+
+	originalVal := val.Value
+
+	returnVal := &object.Integer{Value: originalVal}
+	env.Set(ident.Value, &object.Integer{Value: newVal})
 	return returnVal
 }
 

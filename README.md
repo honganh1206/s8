@@ -11,10 +11,9 @@ This is based on the books "Writing An Interpreter In Go" and "Writing A Compile
 - [x] `^` as bitwise XOR operator
 - [x] `|` as bitwise OR operator
 - [x] `&` as bitwise AND operator
-- [>] `++` for incrementing and `--` for decrementing (Both postfix/infix and prefix)
+- [x] `++` for incrementing and `--` for decrementing (Both postfix/infix and prefix)
 - Object types
 - [x] Float
-- [>] Identifier
 - [ ] Double
 - [ ] Lambdas (We already have that I think?)
 - [ ] LazyObject

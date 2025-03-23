@@ -41,31 +41,31 @@ func TestEvalIntegerExpression(t *testing.T) {
 	}
 }
 
-func TestPrefixIncrementExpression(t *testing.T) {
+func TestPrefixIncrementDecrementExpression(t *testing.T) {
 	tests := []struct {
 		input    string
 		expected int64
 	}{
-		{"let x = 5; ++x;", 6}, // Returns new value immediately
-		// {"let x = 5; --x", 4},    // Returns new value immediately
-		// {"let x = 5; ++x; x", 6}, // Check value after increment
-		// {"let x = 5; --x; x", 4}, // Check value after decrement
+		{"let x = 5; ++x;", 6},   // Returns new value immediately
+		{"let x = 5; --x", 4},    // Returns new value immediately
+		{"let x = 5; ++x; x", 6}, // Check value after increment
+		{"let x = 5; --x; x", 4}, // Check value after decrement
 
-		// {"let x = 5; ++x; ++x", 7}, // Second ++ returns 7
-		// {"let x = 5; ++x; --x", 5}, // Returns 6 then decrements to 5
+		{"let x = 5; ++x; ++x", 7}, // Second ++ returns 7
+		{"let x = 5; ++x; --x", 5}, // Returns 6 then decrements to 5
 
-		// // Arithmetic with prefix
-		// {"let x = 5; let y = 3; ++x + y", 9},    // 6 + 3, as x is incremented first
-		// {"let x = 5; let y = 3; ++x + ++y", 10}, // 6 + 4, both increment before addition
+		// Arithmetic with prefix
+		{"let x = 5; let y = 3; ++x + y", 9},    // 6 + 3, as x is incremented first
+		{"let x = 5; let y = 3; ++x + ++y", 10}, // 6 + 4, both increment before addition
 
-		// // Complex expressions
-		// {"let x = 5; (++x) + 2", 8},      // 6 + 2
-		// {"let x = 5; let y = ++x; y", 6}, // Assignment gets new value
-		// {"let x = 5; let y = --x; y", 4}, // Assignment gets new value
+		// Complex expressions
+		{"let x = 5; (++x) + 2", 8},      // 6 + 2
+		{"let x = 5; let y = ++x; y", 6}, // Assignment gets new value
+		{"let x = 5; let y = --x; y", 4}, // Assignment gets new value
 
-		// // Multiple operations in sequence
-		// {"let x = 5; ++x; ++x; x", 7}, // Final value after two increments
-		// {"let x = 5; --x; --x; x", 3}, // Final value after two decrements
+		// Multiple operations in sequence
+		{"let x = 5; ++x; ++x; x", 7}, // Final value after two increments
+		{"let x = 5; --x; --x; x", 3}, // Final value after two decrements
 	}
 
 	for _, tt := range tests {
@@ -74,26 +74,26 @@ func TestPrefixIncrementExpression(t *testing.T) {
 	}
 }
 
-func TestPostfixIncrementExpression(t *testing.T) {
+func TestPostfixIncrementDecrementExpression(t *testing.T) {
 	tests := []struct {
 		input    string
 		expected int64
 	}{
-		// {"let x = 5; x++", 5}, // Returns original value
-		// {"let x = 5; x--", 5},    // Returns original value
-		// {"let x = 5; x++; x", 6}, // Check value after increment
-		// {"let x = 5; x--; x", 4}, // Check value after decrement
+		{"let x = 5; x++", 5},    // Returns original value
+		{"let x = 5; x--", 5},    // Returns original value
+		{"let x = 5; x++; x", 6}, // Check value after increment
+		{"let x = 5; x--; x", 4}, // Check value after decrement
 
-		// {"let x = 5; x++; x++", 6}, // Second ++ should return 6
-		// {"let x = 5; x++; x--", 6}, // Returns 6 then decrements
+		{"let x = 5; x++; x++", 6}, // Second ++ should return 6
+		{"let x = 5; x++; x--", 6}, // Returns 6 then decrements
 
-		// // Arithmetic with postfix
-		// {"let x = 5; let y = 3; x++ + y", 8},   // 5 + 3, then x becomes 6
-		// {"let x = 5; let y = 3; x++ + y++", 8}, // 5 + 3, then x and y increment
+		// Arithmetic with postfix
+		{"let x = 5; let y = 3; x++ + y", 8},   // 5 + 3, then x becomes 6
+		{"let x = 5; let y = 3; x++ + y++", 8}, // 5 + 3, then x and y increment
 
-		// // Complex expressions
-		// {"let x = 5; (x++) + 2", 7},
-		// {"let x = 5; let y = x++; y", 5}, // Assignment captures original value
+		// Complex expressions
+		{"let x = 5; (x++) + 2", 7},
+		{"let x = 5; let y = x++; y", 5}, // Assignment captures original value
 	}
 
 	for _, tt := range tests {
