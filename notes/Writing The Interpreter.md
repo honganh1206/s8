@@ -80,4 +80,4 @@ twice(addTwo; 2); // Return the value of the first call
 - [Parsing](Parsing.md)
 - [Evaluation](Evaluation.md)
 - [Extending the interpreter](Extending%20the%20interpreter.md)
-- [Going Further]
+- [[Macro system]]

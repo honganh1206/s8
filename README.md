@@ -15,16 +15,20 @@ This is based on the books "Writing An Interpreter In Go" and "Writing A Compile
 - Object types
 - [x] Float
 - [ ] Double
-- [ ] Lambdas (We already have that I think?)
+- [ ] Lambda functions (a subset of anonymous functions)
 - [ ] LazyObject
 - [ ] Comments
+- [ ] Struct
+- [ ] Tuple
+- [ ] Generics
 - Statements
 - [ ] Iterators
 - [ ] `switch` statement
 - [ ] `foreach` statement
-- Builtins
+- Builtins & Libs
 - [ ] `sleep`
 - [ ] `map`
+- [ ] Reflection
 
 ## Future plans
 

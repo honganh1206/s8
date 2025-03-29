@@ -24,6 +24,7 @@ const (
 	ARRAY_OBJ        = "ARRAY"
 	HASH_OBJ         = "HASH"
 	IDENT_OBJ        = "IDENTIFIER"
+	QUOTE_OBJ        = "QUOTE"
 )
 
 // Interface instead of struct
@@ -226,4 +227,17 @@ func (h *Hash) Inspect() string {
 // Check if the given object could be used as a hash key
 type Hashable interface {
 	HashKey() HashKey
+}
+
+type Quote struct {
+	// When we evaluate a call to quote
+	// We can prevent the argument (as a call) from being evaluated immediately
+	Node ast.Node
+}
+
+func (q *Quote) Type() ObjectType { return QUOTE_OBJ }
+
+func (q *Quote) Inspect() string {
+	// Another abstraction layer in String() here
+	return "QUOTE(" + q.Node.String() + ")"
 }
