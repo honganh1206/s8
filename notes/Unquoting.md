@@ -1,6 +1,6 @@
 # Unquoting
 
-No, we cannot just add another condition to `Eval()` to unquote, since _we have never called `Eval()`_. We cannot rely on the recursive nature of `Eval()` to evaluate the quoted literals
+We cannot just add another condition to `Eval()` to unquote, since _we have never called `Eval()`_. We cannot rely on the recursive nature of `Eval()` to evaluate the quoted literals
 
 What we will do instead: Traverse the argument passed into `quote`, find the calls to `unquote` and pass the argument of the call to `Eval`.
 
