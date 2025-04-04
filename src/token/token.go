@@ -15,6 +15,7 @@ var keywords = map[string]TokenType{
 	"if":     IF,
 	"else":   ELSE,
 	"return": RETURN,
+	"macro":  MACRO,
 }
 
 const (
@@ -72,6 +73,8 @@ const (
 	// Arrays
 	LBRACKET = "["
 	RBRACKET = "]"
+
+	MACRO = "MACRO"
 )
 
 // Check if the given identifier is a keyword or a user-defined identifier

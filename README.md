@@ -25,6 +25,7 @@ This is based on the books "Writing An Interpreter In Go" and "Writing A Compile
 - [ ] Iterators
 - [ ] `switch` statement
 - [ ] `foreach` statement
+- [ ] `for` statement with index
 - Builtins & Libs
 - [ ] `sleep`
 - [ ] `map`
@@ -35,7 +36,7 @@ This is based on the books "Writing An Interpreter In Go" and "Writing A Compile
 - [ ] A custom garbage collector in C
 - [ ] Rewrite the language in Rust
 
-## Repos for reference
+## References
 
 - [OK?](https://github.com/jesseduffield/OK)
 

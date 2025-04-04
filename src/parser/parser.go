@@ -91,6 +91,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.LBRACKET, p.parseArrayLiteral)
 	p.registerPrefix(token.LBRACE, p.parseHashLiteral)
 	p.registerPrefix(token.TILDE, p.parsePrefixExpression)
+	p.registerPrefix(token.MACRO, p.parseMacroLiteral)
 
 	// The actual determination of whether it's prefix or postfix
 	// should be done during parsing, not during registration
@@ -674,4 +675,22 @@ func (p *Parser) parseHashLiteral() ast.Expression {
 		return nil
 	}
 	return hash
+}
+
+func (p *Parser) parseMacroLiteral() ast.Expression {
+	lit := &ast.MacroLiteral{Token: p.currentToken}
+
+	if !p.expectPeek(token.LPAREN) {
+		return nil
+	}
+
+	lit.Parameters = p.parseFunctionParameters()
+
+	if !p.expectPeek(token.LBRACE) {
+		return nil
+	}
+
+	lit.Body = p.parseBlockStatement()
+
+	return lit
 }

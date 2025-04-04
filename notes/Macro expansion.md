@@ -21,3 +21,5 @@ The macro expansion takes the AST and modifies it before it is evaluated.
 
 > [!IMPORTANT]
 > In this phase we do not evaluate the arguments of the call before evaluate the body. More on [[Differences between functions and macros]]
+
+## Where do we find the macros in the AST?
