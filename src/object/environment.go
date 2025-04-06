@@ -1,5 +1,16 @@
 package object
 
+// Enclosed Env (Outer)
+// ┌────────────────────────┐
+// │ outer variables        │
+// │                        │
+// │   Extended Env (Inner) │
+// │   ┌─────────────────┐  │
+// │   │ function args   │  │
+// │   │ local variables │  │
+// │   └─────────────────┘  │
+// └────────────────────────┘
+
 type Environment struct {
 	store map[string]Object
 	outer *Environment // The enclosing env of the current env

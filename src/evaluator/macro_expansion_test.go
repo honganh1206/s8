@@ -11,7 +11,7 @@ import (
 func TestDefineMacros(t *testing.T) {
 	input := `
 	let number = 1;
-	let function = fn(x, y) { x + y };
+	let function = funk(x, y) { x + y };
 	let mymacro = macro(x, y) { x + y; };
 	`
 
@@ -22,7 +22,7 @@ func TestDefineMacros(t *testing.T) {
 	DefineMacros(program, env)
 
 	if len(program.Statements) != 2 {
-		t.Fatalf("Wrong number of statements. got: %d", len(program.Statements))
+		t.Fatalf("wrong number of statements. got: %d", len(program.Statements))
 	}
 
 	_, ok := env.Get("number")
@@ -70,4 +70,38 @@ func testParseProgram(input string) *ast.Program {
 	l := lexer.New(input)
 	p := parser.New(l)
 	return p.ParseProgram()
+}
+
+func TestExpandMacros(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		// Ensure the macros really return unevaluated source code
+		{
+			// TODO: The binding does not work?
+			`let infixExpression = macro() { quote(1 + 2); };infixExpression();`,
+			`(1 + 2)`,
+		},
+		// The params wont be evaluated immediately
+		// unquote is used to access its parameters so we can generate a new AST node
+		{
+			`let reverse = macro(a, b) { quote(unquote(b) - unquote(a)); };reverse(2 + 2, 10 - 5);`,
+			`(10 - 5) - (2 + 2)`,
+		},
+	}
+	for _, tt := range tests {
+		expected := testParseProgram(tt.expected)
+		program := testParseProgram(tt.input)
+
+		env := object.NewEnvironment()
+		DefineMacros(program, env)
+
+		expanded := ExpandMacros(program, env)
+
+		if expanded.String() != expected.String() {
+			t.Errorf("not equal. want: %q, got: %q",
+				expected.String(), expanded.String())
+		}
+	}
 }

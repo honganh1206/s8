@@ -433,7 +433,7 @@ func isTruthy(obj object.Object) bool {
 	}
 }
 
-func newError(format string, a ...interface{}) *object.Error {
+func newError(format string, a ...any) *object.Error {
 	return &object.Error{Message: fmt.Sprintf(format, a...)}
 }
 
@@ -473,17 +473,6 @@ func evalExpressions(exprs []ast.Expression, env *object.Environment) []object.O
 
 	return result
 }
-
-// 	Function's Enclosed Env (Outer)
-// ┌────────────────────────┐
-// │ outer variables        │
-// │                        │
-// │   Extended Env (Inner) │
-// │   ┌─────────────────┐  │
-// │   │ function args   │  │
-// │   │ local variables │  │
-// │   └─────────────────┘  │
-// └────────────────────────┘
 
 func applyFunction(fn object.Object, args []object.Object) object.Object {
 	switch fn := fn.(type) {
