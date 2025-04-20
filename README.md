@@ -29,16 +29,31 @@ This is based on the books "Writing An Interpreter In Go" and "Writing A Compile
 - Builtins & Libs
 - [ ] `sleep`
 - [ ] `map`
-- [ ] Reflection
+- [ ] `left` and `right` to return child nodes of an AST node
+- [ ] `operator` to return the operator of an infix expression
+- [ ] `arguments` to return an array of nodes in a `*ast.CallExpression`
+- [ ] `children` function to return child nodes
+- Reflection
+- Macros
+- [ ] Make `quote` and `unquote` separate keywords
+- [ ] Passing block statements to `quote`/`unquote`
+- Other nasty stuff
+- [ ] Upgrade macro error handling system
 
 ## Future plans
 
-- [ ] A custom garbage collector in C
-- [ ] Rewrite the language in Rust
+- [ ] Rewrite the interpreter + Compiler in Zig
+
+Refs:
+
+- [ ] Compile to WebAssembly
 
 ## References
 
 - [OK?](https://github.com/jesseduffield/OK)
+- [lox-zig](https://github.com/adrianchong518/lox-zig) (25 commits)
+- [zigself](https://github.com/sin-ack/zigself) (>600 commits)
+- [kiesel - JS engine](https://codeberg.org/kiesel-js/kiesel) (>2000 commits)
 
 ---
 
