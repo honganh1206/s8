@@ -13,4 +13,6 @@ Using the stack is good for a compiler, since **function calls are often nested*
 
 Why _The Stack_ and not just a stack? Because the region used to implement a call stack is a **convention** - so common that it's been cast into hardware
 
-We are going to implement _a virtual call stack_
+GOAL: We are going to implement _a virtual call stack_
+
+We have a memory address _pointing to the top of the stack_ and that address is stored in a register. We call that address a **stack pointer**, and it has a designated register in most CPUs

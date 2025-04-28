@@ -5,3 +5,5 @@ Compilers and VMs are ideas - patterns - and they can have multiple implementati
 [[Compilers]]
 
 [[Virtual Machines]]
+
+[[Bytecode]]
