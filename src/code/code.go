@@ -1,6 +1,7 @@
 package code
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
 )
@@ -24,13 +25,15 @@ const (
 	// Each definition later on will have `Op` prefix with the value it refers to determined by iota
 )
 
+// How an instruction should look like: Its opcode and widths of its operands
 type Definition struct {
 	Name          string
-	OperandWidths []int // A slice telling how many bytes each operand takes up
+	OperandWidths []int // A slice telling how many bytes EACH operand takes up
 }
 
 // Similar to the precedence table, we will store operations like ADD, JUMP, etc. here
 var definitions = map[Opcode]*Definition{
+	// Push constant to top of the stack
 	// Two-byte wide operand maximum of 65536
 	// That's more than enough. We won't be having more than 65536 references
 	OpConstant: {"OpConstant", []int{2}},
@@ -45,10 +48,12 @@ func Lookup(op byte) (*Definition, error) {
 	return def, nil
 }
 
+// Generate instructions
 func Make(op Opcode, operands ...int) []byte {
 	def, ok := definitions[op]
 	if !ok {
-		return []byte{} // Risk of using empty byte slices using unknown opcode
+		// Risk of using empty byte slices if using unknown opcode
+		return []byte{}
 	}
 
 	instructionLen := 1 // 1 byte for the opcode
@@ -64,9 +69,10 @@ func Make(op Opcode, operands ...int) []byte {
 
 	for i, o := range operands {
 		width := def.OperandWidths[i]
+		// Encode the operands into the instruction
 		switch width {
 		case 2:
-			// Take the matching element in the operands slice and put it into the instruction
+			// Take the width-matching element in the operands slice and put it into the instruction
 			// The 1st operand is put behind the opcode
 			// Then the 2nd one is put behind the 1st one and so on
 			binary.BigEndian.PutUint16(instruction[offset:], uint16(o))
@@ -76,4 +82,67 @@ func Make(op Opcode, operands ...int) []byte {
 	}
 
 	return instruction
+}
+
+// Decode the operands of an instruction
+func ReadOperands(def *Definition, ins Instructions) ([]int, int) {
+	operands := make([]int, len(def.OperandWidths))
+	offset := 0
+
+	for i, width := range def.OperandWidths {
+		switch width {
+		case 2:
+			// Retrieve and decode the operand at that position/offset
+			operands[i] = int(ReadUint16(ins[offset:]))
+		}
+
+		offset += width
+	}
+	return operands, offset
+}
+
+// A separate function to be used by the VM
+func ReadUint16(ins Instructions) uint16 {
+	return binary.BigEndian.Uint16(ins)
+}
+
+// String-tify the instructions
+// Implementing the Stringer interface here
+func (ins Instructions) String() string {
+	var out bytes.Buffer
+
+	i := 0
+	for i < len(ins) {
+		def, err := Lookup(ins[i])
+		if err != nil {
+			fmt.Fprintf(&out, "ERROR:%s\n", err)
+			continue
+		}
+
+		// Skip the opcode and read the operands
+		operands, offset := ReadOperands(def, ins[i+1:])
+
+		fmt.Fprintf(&out, "%04d %s\n", i, ins.fmtInstruction(def, operands))
+
+		i += 1 + offset
+
+	}
+
+	return out.String()
+}
+
+func (ins Instructions) fmtInstruction(def *Definition, operands []int) string {
+	operandCount := len(def.OperandWidths)
+
+	// Mismatching number of operands?
+	if len(operands) != operandCount {
+		return fmt.Sprintf("ERROR: operand len %d does not match defined %d\n", len(operands), operandCount)
+	}
+
+	switch operandCount {
+	case 1: // Case for OpConstant?
+		return fmt.Sprintf("%s %d", def.Name, operands[0])
+	}
+
+	return fmt.Sprintf("ERROR: unhandled operandCount for %s\n", def.Name)
 }

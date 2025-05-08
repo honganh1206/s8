@@ -377,12 +377,12 @@ func TestFunctionApplication(t *testing.T) {
 		expected int64
 	}{
 		{"let identity = funk(x) { x; }; identity(5);", 5},
-		// {"let identity = funk(x) { return x; }; identity(5);", 5},
-		// {"let double = funk(x) { x * 2; }; double(5);", 10},
-		// {"let add = funk(x, y) { x + y; }; add(5, 5);", 10},
-		// // Two forms of *ast.CallExpression
-		// {"let add = funk(x, y) { x + y; }; add(5 + 5, add(5, 5));", 20}, // Function as an identifier evaluating to a function obj
-		// {"funk(x) { x; }(5)", 5}, // Function is a function literal aka Anonymous function
+		{"let identity = funk(x) { return x; }; identity(5);", 5},
+		{"let double = funk(x) { x * 2; }; double(5);", 10},
+		{"let add = funk(x, y) { x + y; }; add(5, 5);", 10},
+		// Two forms of *ast.CallExpression
+		{"let add = funk(x, y) { x + y; }; add(5 + 5, add(5, 5));", 20}, // Function as an identifier evaluating to a function obj
+		{"funk(x) { x; }(5)", 5}, // Function is a function literal aka Anonymous function
 	}
 	for _, tt := range tests {
 		testIntegerObject(t, testEval(tt.input), tt.expected)
