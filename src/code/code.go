@@ -48,7 +48,7 @@ func Lookup(op byte) (*Definition, error) {
 	return def, nil
 }
 
-// Generate instructions
+// Generate an instruction
 func Make(op Opcode, operands ...int) []byte {
 	def, ok := definitions[op]
 	if !ok {

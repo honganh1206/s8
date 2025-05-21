@@ -123,8 +123,7 @@ Refs:
 
 - [OK?](https://github.com/jesseduffield/OK)
 - [straw](https://github.com/yjp20/turtle/tree/master/straw)
-- [lox-zig](https://github.com/adrianchong518/lox-zig) (25 commits)
-- [zigself](https://github.com/sin-ack/zigself) (>600 commits)
+- [knox](https://github.com/AZHenley/knox)
 
 ---
 

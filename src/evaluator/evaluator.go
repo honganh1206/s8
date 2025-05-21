@@ -16,6 +16,7 @@ var (
 	FALSE = &object.Boolean{Value: false}
 )
 
+// TODO: Move this somewhere else?
 const epsilon = 0.000001
 const precision = 6
 

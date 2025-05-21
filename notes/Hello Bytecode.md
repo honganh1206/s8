@@ -9,3 +9,5 @@ Data structures: String -> Tokens -> AST -> Bytecode -> Objects
 [[Stack machine]]
 
 [[The smallest compiler]]
+
+Our VM should be able to fetch, decode and execute `OpConstant` instructions, and the results will be pushed on to the VM's stack
