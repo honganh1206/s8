@@ -25,6 +25,7 @@ func TestIntegerArithmetic(t *testing.T) {
 				// A BIG gotcha: This is a slice of SLICES of bytes
 				code.Make(code.OpConstant, 0), // Push the constant 1 at index 0
 				code.Make(code.OpConstant, 1), // Push the constant 2 at index 1
+				code.Make(code.OpAdd),         // Add the values pushed to the stack,
 			},
 		},
 	}

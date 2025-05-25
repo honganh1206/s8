@@ -28,10 +28,12 @@ const (
 	OpAdd
 )
 
-// How an instruction should look like: Its opcode and widths of its operands
+// How an instruction looks like
 type Definition struct {
-	Name          string
-	OperandWidths []int // A slice telling how many bytes EACH operand takes up
+	// Opcode
+	Name string
+	// Widths of its operands
+	OperandWidths []int
 }
 
 // Similar to the precedence table, we will store operations like ADD, JUMP, etc. here
@@ -145,7 +147,9 @@ func (ins Instructions) fmtInstruction(def *Definition, operands []int) string {
 	}
 
 	switch operandCount {
-	case 1: // Case for OpConstant?
+	case 0:
+		return def.Name
+	case 1: // Case for OpConstant
 		return fmt.Sprintf("%s %d", def.Name, operands[0])
 	}
 
