@@ -13,6 +13,7 @@ func TestMake(t *testing.T) {
 		// Why not uint32? Then we use less bytes and thus instructions are smaller
 		// We can also check if the most significant byte 0xFF comes first
 		{OpConstant, []int{65534}, []byte{byte(OpConstant), 255, 254}},
+		{OpAdd, []int{}, []byte{byte(OpAdd)}},
 	}
 
 	for _, tt := range tests {

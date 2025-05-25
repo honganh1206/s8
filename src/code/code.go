@@ -6,12 +6,14 @@ import (
 	"fmt"
 )
 
-// No Instruction byte singular
-// Since working with []byte is easier and treat it implicitly as an Instruction
-// Instead of encoding the Instruction type to Go's type system
+// A slice of bytes including pointers to opcode and operands (stored in constant pool).
+// Why no Instruction byte singular?
+// Working with []byte is easier and we can treat it implicitly as an Instruction,
+// instead of encoding the Instruction type to Go's type system
 type Instructions []byte
 
-type Opcode byte // Exactly 1 byte wide
+// Exactly 1 byte wide
+type Opcode byte
 
 const (
 	// OpConstant instructs the VM to:
@@ -23,6 +25,7 @@ const (
 	// The bytecode might look like this:  [OpConstant, 7]
 	OpConstant Opcode = iota
 	// Each definition later on will have `Op` prefix with the value it refers to determined by iota
+	OpAdd
 )
 
 // How an instruction should look like: Its opcode and widths of its operands
@@ -37,6 +40,8 @@ var definitions = map[Opcode]*Definition{
 	// Two-byte wide operand maximum of 65536
 	// That's more than enough. We won't be having more than 65536 references
 	OpConstant: {"OpConstant", []int{2}},
+	// No operand
+	OpAdd: {"OpAdd", []int{}},
 }
 
 func Lookup(op byte) (*Definition, error) {
