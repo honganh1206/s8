@@ -3,3 +3,5 @@
 [[Compilers and Virtual Machines]]
 
 [[Hello Bytecode]]
+
+[[Compiling Expressions]]

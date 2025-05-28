@@ -27,13 +27,9 @@ func New(bytecode *compiler.Bytecode) *VM {
 	}
 }
 
-// Get the element at the top of the VM's stack
-func (vm *VM) StackTop() object.Object {
-	if vm.sp == 0 {
-		return nil
-	}
-
-	return vm.stack[vm.sp-1]
+// Get the topmost element in the VM's stack right before we pop it off
+func (vm *VM) LastPoppedStackElement() object.Object {
+	return vm.stack[vm.sp]
 }
 
 func (vm *VM) Run() error {
@@ -63,6 +59,8 @@ func (vm *VM) Run() error {
 
 			result := leftVal + rightVal
 			vm.push(&object.Integer{Value: result})
+		case code.OpPop:
+			vm.pop()
 		}
 
 	}

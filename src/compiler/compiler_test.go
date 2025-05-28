@@ -26,6 +26,18 @@ func TestIntegerArithmetic(t *testing.T) {
 				code.Make(code.OpConstant, 0), // Push the constant 1 at index 0
 				code.Make(code.OpConstant, 1), // Push the constant 2 at index 1
 				code.Make(code.OpAdd),         // Add the values pushed to the stack,
+				code.Make(code.OpPop),         // Pop the result of the stack
+			},
+		},
+		// Ensure after each statement OpPop is emitted
+		{
+			input:             "1; 2",
+			expectedConstants: []any{1, 2},
+			expectedInstructions: []code.Instructions{
+				code.Make(code.OpConstant, 0),
+				code.Make(code.OpPop),
+				code.Make(code.OpConstant, 1),
+				code.Make(code.OpPop),
 			},
 		},
 	}
