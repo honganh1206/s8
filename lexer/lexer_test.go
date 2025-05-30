@@ -1,7 +1,7 @@
 package lexer
 
 import (
-	"s8/src/token"
+	"s8/token"
 	"testing"
 )
 

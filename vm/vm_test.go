@@ -2,11 +2,11 @@ package vm
 
 import (
 	"fmt"
-	"s8/src/ast"
-	"s8/src/compiler"
-	"s8/src/lexer"
-	"s8/src/object"
-	"s8/src/parser"
+	"s8/ast"
+	"s8/compiler"
+	"s8/lexer"
+	"s8/object"
+	"s8/parser"
 	"testing"
 )
 

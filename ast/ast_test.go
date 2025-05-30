@@ -1,7 +1,7 @@
 package ast
 
 import (
-	"s8/src/token"
+	"s8/token"
 	"testing"
 )
 

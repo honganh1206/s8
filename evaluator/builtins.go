@@ -3,7 +3,7 @@ package evaluator
 import (
 	"fmt"
 	"math"
-	"s8/src/object"
+	"s8/object"
 )
 
 // Separate environment of builtin functions

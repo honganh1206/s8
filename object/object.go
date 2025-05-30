@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"hash/fnv"
-	"s8/src/ast"
+	"s8/ast"
 	"strings"
 )
 

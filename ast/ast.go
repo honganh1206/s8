@@ -2,7 +2,7 @@ package ast
 
 import (
 	"bytes"
-	"s8/src/token"
+	"s8/token"
 	"strings"
 )
 

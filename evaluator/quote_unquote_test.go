@@ -1,7 +1,7 @@
 package evaluator
 
 import (
-	"s8/src/object"
+	"s8/object"
 	"testing"
 )
 

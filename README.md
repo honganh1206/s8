@@ -6,7 +6,7 @@ Why the name? The language is named after the football player Dominik Szoboszlai
 
 ## Use
 
-Just `go run ./src/main.go` for now and go with the flow from there
+Just `go run ./main.go` for now and go with the flow from there
 
 ## Sample
 

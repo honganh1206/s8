@@ -2,8 +2,8 @@ package parser
 
 import (
 	"fmt"
-	"s8/src/ast"
-	"s8/src/lexer"
+	"s8/ast"
+	"s8/lexer"
 	"testing"
 )
 

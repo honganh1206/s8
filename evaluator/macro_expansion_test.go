@@ -1,10 +1,10 @@
 package evaluator
 
 import (
-	"s8/src/ast"
-	"s8/src/lexer"
-	"s8/src/object"
-	"s8/src/parser"
+	"s8/ast"
+	"s8/lexer"
+	"s8/object"
+	"s8/parser"
 	"testing"
 )
 

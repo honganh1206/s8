@@ -2,9 +2,9 @@ package vm
 
 import (
 	"fmt"
-	"s8/src/code"
-	"s8/src/compiler"
-	"s8/src/object"
+	"s8/code"
+	"s8/compiler"
+	"s8/object"
 )
 
 const StackSize = 2048

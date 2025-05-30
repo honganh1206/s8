@@ -3,9 +3,9 @@ package evaluator
 import (
 	"fmt"
 	"math"
-	"s8/src/ast"
-	"s8/src/object"
-	"s8/src/token"
+	"s8/ast"
+	"s8/object"
+	"s8/token"
 )
 
 // To NOT create new instances of object.Boolean or object.Null and use reference instead

@@ -4,12 +4,12 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"s8/src/compiler"
-	"s8/src/evaluator"
-	"s8/src/lexer"
-	"s8/src/object"
-	"s8/src/parser"
-	"s8/src/vm"
+	"s8/compiler"
+	"s8/evaluator"
+	"s8/lexer"
+	"s8/object"
+	"s8/parser"
+	"s8/vm"
 )
 
 const PROMPT = ">> "

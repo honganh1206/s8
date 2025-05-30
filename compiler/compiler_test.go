@@ -2,11 +2,11 @@ package compiler
 
 import (
 	"fmt"
-	"s8/src/ast"
-	"s8/src/code"
-	"s8/src/lexer"
-	"s8/src/object"
-	"s8/src/parser"
+	"s8/ast"
+	"s8/code"
+	"s8/lexer"
+	"s8/object"
+	"s8/parser"
 	"testing"
 )
 
@@ -37,6 +37,36 @@ func TestIntegerArithmetic(t *testing.T) {
 				code.Make(code.OpConstant, 0),
 				code.Make(code.OpPop),
 				code.Make(code.OpConstant, 1),
+				code.Make(code.OpPop),
+			},
+		},
+		{
+			input:             "1 - 2",
+			expectedConstants: []any{1, 2},
+			expectedInstructions: []code.Instructions{
+				code.Make(code.OpConstant, 0),
+				code.Make(code.OpConstant, 1),
+				code.Make(code.OpSub),
+				code.Make(code.OpPop),
+			},
+		},
+		{
+			input:             "1 * 2",
+			expectedConstants: []any{1, 2},
+			expectedInstructions: []code.Instructions{
+				code.Make(code.OpConstant, 0),
+				code.Make(code.OpConstant, 1),
+				code.Make(code.OpMul),
+				code.Make(code.OpPop),
+			},
+		},
+		{
+			input:             "2 / 1",
+			expectedConstants: []any{2, 1},
+			expectedInstructions: []code.Instructions{
+				code.Make(code.OpConstant, 0),
+				code.Make(code.OpConstant, 1),
+				code.Make(code.OpDiv),
 				code.Make(code.OpPop),
 			},
 		},

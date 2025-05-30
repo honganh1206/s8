@@ -1,8 +1,8 @@
 package evaluator
 
 import (
-	"s8/src/ast"
-	"s8/src/object"
+	"s8/ast"
+	"s8/object"
 	"slices"
 )
 

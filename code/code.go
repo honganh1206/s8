@@ -27,6 +27,9 @@ const (
 	// Each definition later on will have `Op` prefix with the value it refers to determined by iota
 	OpAdd
 	OpPop
+	OpSub
+	OpMul
+	OpDiv
 )
 
 // How an instruction looks like
@@ -46,6 +49,9 @@ var definitions = map[Opcode]*Definition{
 	// No operand
 	OpAdd: {"OpAdd", []int{}},
 	OpPop: {"OpPop", []int{}},
+	OpSub: {"OpSub", []int{}},
+	OpMul: {"OpMul", []int{}},
+	OpDiv: {"OpDiv", []int{}},
 }
 
 func Lookup(op byte) (*Definition, error) {
