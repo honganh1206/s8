@@ -25,16 +25,26 @@ const (
 	// The bytecode might look like this:  [OpConstant, 7]
 	OpConstant Opcode = iota
 	// Each definition later on will have `Op` prefix with the value it refers to determined by iota
+	OpTrue
+	OpFalse
+
+	// Binary operators
 	OpAdd
 	OpPop
 	OpSub
 	OpMul
 	OpDiv
-	OpTrue
-	OpFalse
 	OpEqual
 	OpNotEqual
 	OpGreaterThan
+
+	// Unary operators
+	OpMinus
+	OpBang
+
+	// TODO: Add postfix expressions
+	OpQuestion
+	OpTilde
 )
 
 // How an instruction looks like
@@ -62,6 +72,8 @@ var definitions = map[Opcode]*Definition{
 	OpEqual:       {"OpEqual", []int{}},
 	OpNotEqual:    {"OpNotEqual", []int{}},
 	OpGreaterThan: {"OpGreaterThan", []int{}},
+	OpMinus:       {"OpMinus", []int{}},
+	OpBang:        {"OpBang", []int{}},
 }
 
 func Lookup(op byte) (*Definition, error) {
