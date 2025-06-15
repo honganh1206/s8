@@ -32,6 +32,9 @@ const (
 	OpDiv
 	OpTrue
 	OpFalse
+	OpEqual
+	OpNotEqual
+	OpGreaterThan
 )
 
 // How an instruction looks like
@@ -49,13 +52,16 @@ var definitions = map[Opcode]*Definition{
 	// That's more than enough. We won't be having more than 65536 references
 	OpConstant: {"OpConstant", []int{2}},
 	// No operand
-	OpAdd:   {"OpAdd", []int{}},
-	OpPop:   {"OpPop", []int{}},
-	OpSub:   {"OpSub", []int{}},
-	OpMul:   {"OpMul", []int{}},
-	OpDiv:   {"OpDiv", []int{}},
-	OpTrue:  {"OpTrue", []int{}},
-	OpFalse: {"OpFalse", []int{}},
+	OpAdd:         {"OpAdd", []int{}},
+	OpPop:         {"OpPop", []int{}},
+	OpSub:         {"OpSub", []int{}},
+	OpMul:         {"OpMul", []int{}},
+	OpDiv:         {"OpDiv", []int{}},
+	OpTrue:        {"OpTrue", []int{}},
+	OpFalse:       {"OpFalse", []int{}},
+	OpEqual:       {"OpEqual", []int{}},
+	OpNotEqual:    {"OpNotEqual", []int{}},
+	OpGreaterThan: {"OpGreaterThan", []int{}},
 }
 
 func Lookup(op byte) (*Definition, error) {
