@@ -54,7 +54,7 @@ func (vm *VM) Run() error {
 			if err != nil {
 				return err
 			}
-		case code.OpAdd, code.OpSub, code.OpMul, code.OpDiv:
+		case code.OpAdd, code.OpSub, code.OpMul, code.OpDiv, code.OpPipe, code.OpRShift, code.OpLShift:
 			err := vm.executeBinaryOperation(op)
 			if err != nil {
 				return err
@@ -81,8 +81,8 @@ func (vm *VM) Run() error {
 			if err != nil {
 				return err
 			}
-		case code.OpMinus:
-			err := vm.executeMinusOperator()
+		case code.OpMinus, code.OpTilde:
+			err := vm.executePrefixIntegerArithmeticOperation(op)
 			if err != nil {
 				return err
 			}
@@ -123,6 +123,12 @@ func (vm *VM) executeBinaryIntegerOperation(op code.Opcode, left, right object.O
 		result = leftValue * rightValue
 	case code.OpDiv:
 		result = leftValue / rightValue
+	case code.OpPipe:
+		result = leftValue | rightValue
+	case code.OpRShift:
+		result = leftValue >> rightValue
+	case code.OpLShift:
+		result = leftValue << rightValue
 	default:
 		return fmt.Errorf("unknown integer operator: %d", op)
 	}
@@ -190,14 +196,21 @@ func (vm *VM) executeBangOperator() error {
 	}
 }
 
-func (vm *VM) executeMinusOperator() error {
+func (vm *VM) executePrefixIntegerArithmeticOperation(op code.Opcode) error {
 	operand := vm.pop()
 	if operand.Type() != object.INTERGER_OBJ {
 		return fmt.Errorf("unsupported type for negation: %s", operand.Type())
 	}
 
 	val := operand.(*object.Integer).Value
-	return vm.push(&object.Integer{Value: -val})
+	switch op {
+	case code.OpMinus:
+		return vm.push(&object.Integer{Value: -val})
+	case code.OpTilde:
+		return vm.push(&object.Integer{Value: ^val})
+	}
+
+	return nil
 
 }
 

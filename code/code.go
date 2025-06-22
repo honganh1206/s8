@@ -37,13 +37,15 @@ const (
 	OpEqual
 	OpNotEqual
 	OpGreaterThan
+	OpAmpersand
+	OpPipe
+	OpRShift
+	OpLShift
 
 	// Unary operators
 	OpMinus
 	OpBang
-
 	// TODO: Add postfix expressions
-	OpQuestion
 	OpTilde
 )
 
@@ -72,8 +74,13 @@ var definitions = map[Opcode]*Definition{
 	OpEqual:       {"OpEqual", []int{}},
 	OpNotEqual:    {"OpNotEqual", []int{}},
 	OpGreaterThan: {"OpGreaterThan", []int{}},
+	OpAmpersand:   {"OpAmpersand", []int{}},
 	OpMinus:       {"OpMinus", []int{}},
 	OpBang:        {"OpBang", []int{}},
+	OpTilde:       {"OpTilde", []int{}},
+	OpPipe:        {"OpPipe", []int{}},
+	OpRShift:      {"OpRShift", []int{}},
+	OpLShift:      {"OpLShift", []int{}},
 }
 
 func Lookup(op byte) (*Definition, error) {

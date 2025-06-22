@@ -85,6 +85,12 @@ func (c *Compiler) Compile(node ast.Node) error {
 			c.emit(code.OpEqual)
 		case "!=":
 			c.emit(code.OpNotEqual)
+		case "|":
+			c.emit(code.OpPipe)
+		case ">>":
+			c.emit(code.OpRShift)
+		case "<<":
+			c.emit(code.OpLShift)
 		default:
 			return fmt.Errorf("unknown operator: %s", node.Operator)
 		}
@@ -108,6 +114,8 @@ func (c *Compiler) Compile(node ast.Node) error {
 			c.emit(code.OpBang)
 		case "-":
 			c.emit(code.OpMinus)
+		case "~":
+			c.emit(code.OpTilde)
 		default:
 			return fmt.Errorf("unknown operator: %s", node.Operator)
 		}

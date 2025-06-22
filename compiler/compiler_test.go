@@ -71,6 +71,36 @@ func TestIntegerArithmetic(t *testing.T) {
 			},
 		},
 		{
+			input:             "5 | 5",
+			expectedConstants: []any{5, 5},
+			expectedInstructions: []code.Instructions{
+				code.Make(code.OpConstant, 0),
+				code.Make(code.OpConstant, 1),
+				code.Make(code.OpPipe),
+				code.Make(code.OpPop),
+			},
+		},
+		{
+			input:             "5 >> 5",
+			expectedConstants: []any{5, 5},
+			expectedInstructions: []code.Instructions{
+				code.Make(code.OpConstant, 0),
+				code.Make(code.OpConstant, 1),
+				code.Make(code.OpRShift),
+				code.Make(code.OpPop),
+			},
+		},
+		{
+			input:             "5 << 5",
+			expectedConstants: []any{5, 5},
+			expectedInstructions: []code.Instructions{
+				code.Make(code.OpConstant, 0),
+				code.Make(code.OpConstant, 1),
+				code.Make(code.OpLShift),
+				code.Make(code.OpPop),
+			},
+		},
+		{
 			input:             "true",
 			expectedConstants: []any{},
 			expectedInstructions: []code.Instructions{
@@ -92,6 +122,15 @@ func TestIntegerArithmetic(t *testing.T) {
 			expectedInstructions: []code.Instructions{
 				code.Make(code.OpConstant, 0),
 				code.Make(code.OpMinus),
+				code.Make(code.OpPop),
+			},
+		},
+		{
+			input:             "~5",
+			expectedConstants: []any{5},
+			expectedInstructions: []code.Instructions{
+				code.Make(code.OpConstant, 0),
+				code.Make(code.OpTilde),
 				code.Make(code.OpPop),
 			},
 		},

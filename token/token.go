@@ -44,8 +44,8 @@ const (
 	QUESTION  = "?"
 	EXPONENT  = "^"
 	PIPE      = "|"
-	RSHIFT    = ">>"
-	LSHIFT    = "<<"
+	RSHIFT    = ">>" // divided by 2 e.g., n >> x means n divided by 2, x times
+	LSHIFT    = "<<" // times 2 e.g., n << x means n times 2, x times
 	AMPERSAND = "&"
 
 	// Delimiters
