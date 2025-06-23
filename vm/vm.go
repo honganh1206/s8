@@ -54,7 +54,7 @@ func (vm *VM) Run() error {
 			if err != nil {
 				return err
 			}
-		case code.OpAdd, code.OpSub, code.OpMul, code.OpDiv, code.OpPipe, code.OpRShift, code.OpLShift:
+		case code.OpAdd, code.OpSub, code.OpMul, code.OpDiv, code.OpPipe, code.OpRShift, code.OpLShift, code.OpAmpersand, code.OpExponent:
 			err := vm.executeBinaryOperation(op)
 			if err != nil {
 				return err
@@ -86,6 +86,12 @@ func (vm *VM) Run() error {
 			if err != nil {
 				return err
 			}
+		case code.OpPreInc, code.OpPreDec, code.OpPostInc, code.OpPostDec:
+			err := vm.executeIncrementDecrementOperator(op)
+			if err != nil {
+				return err
+			}
+
 		}
 
 	}
@@ -129,6 +135,10 @@ func (vm *VM) executeBinaryIntegerOperation(op code.Opcode, left, right object.O
 		result = leftValue >> rightValue
 	case code.OpLShift:
 		result = leftValue << rightValue
+	case code.OpAmpersand:
+		result = leftValue & rightValue
+	case code.OpExponent:
+		result = leftValue ^ rightValue
 	default:
 		return fmt.Errorf("unknown integer operator: %d", op)
 	}
@@ -214,7 +224,25 @@ func (vm *VM) executePrefixIntegerArithmeticOperation(op code.Opcode) error {
 
 }
 
-// Push the object to the stack's constant pool
+func (vm *VM) executeIncrementDecrementOperator(op code.Opcode) error {
+	operand := vm.pop()
+	if operand.Type() != object.INTERGER_OBJ {
+		return fmt.Errorf("unsupported type for negation: %s", operand.Type())
+	}
+
+	val := operand.(*object.Integer).Value
+	switch op {
+	case code.OpPreInc, code.OpPreDec:
+		return vm.executePrefixIncrementDecrementOperator(op, val)
+	case code.OpPostInc, code.OpPostDec:
+		return vm.executePostfixIncrementDecrementOperator(op, val)
+	}
+
+	return nil
+
+}
+
+// Push the object from the constant pool to the stack
 func (vm *VM) push(o object.Object) error {
 	if vm.sp > StackSize {
 		return fmt.Errorf("stack overflow")
@@ -231,4 +259,20 @@ func (vm *VM) pop() object.Object {
 	o := vm.stack[vm.sp-1]
 	vm.sp-- // Move the pointer to the next element in line
 	return o
+}
+
+func (vm *VM) executePrefixIncrementDecrementOperator(op code.Opcode, val int64) error {
+	var newVal int64
+	switch op {
+	case code.OpPreInc:
+		newVal = val + 1
+	case code.OpPreDec:
+		newVal = val - 1
+	}
+	return vm.push(&object.Integer{Value: newVal})
+}
+
+func (vm *VM) executePostfixIncrementDecrementOperator(op code.Opcode, val int64) error {
+	// TODO: Set to environment later
+	return vm.push(&object.Integer{Value: val})
 }

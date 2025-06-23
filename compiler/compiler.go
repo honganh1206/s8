@@ -91,6 +91,10 @@ func (c *Compiler) Compile(node ast.Node) error {
 			c.emit(code.OpRShift)
 		case "<<":
 			c.emit(code.OpLShift)
+		case "^":
+			c.emit(code.OpExponent)
+		case "&":
+			c.emit(code.OpAmpersand)
 		default:
 			return fmt.Errorf("unknown operator: %s", node.Operator)
 		}
@@ -116,6 +120,24 @@ func (c *Compiler) Compile(node ast.Node) error {
 			c.emit(code.OpMinus)
 		case "~":
 			c.emit(code.OpTilde)
+		case "++":
+			c.emit(code.OpPreInc)
+		case "--":
+			c.emit(code.OpPreDec)
+		default:
+			return fmt.Errorf("unknown operator: %s", node.Operator)
+		}
+	case *ast.PostfixExpression:
+		err := c.Compile(node.Left)
+		if err != nil {
+			return err
+		}
+
+		switch node.Operator {
+		case "++":
+			c.emit(code.OpPostInc)
+		case "--":
+			c.emit(code.OpPostDec)
 		default:
 			return fmt.Errorf("unknown operator: %s", node.Operator)
 		}

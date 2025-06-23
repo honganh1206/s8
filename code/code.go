@@ -39,14 +39,18 @@ const (
 	OpGreaterThan
 	OpAmpersand
 	OpPipe
+	OpExponent
 	OpRShift
 	OpLShift
 
 	// Unary operators
 	OpMinus
 	OpBang
-	// TODO: Add postfix expressions
 	OpTilde
+	OpPreInc
+	OpPreDec
+	OpPostInc
+	OpPostDec
 )
 
 // How an instruction looks like
@@ -81,6 +85,11 @@ var definitions = map[Opcode]*Definition{
 	OpPipe:        {"OpPipe", []int{}},
 	OpRShift:      {"OpRShift", []int{}},
 	OpLShift:      {"OpLShift", []int{}},
+	OpExponent:    {"OpExponent", []int{}},
+	OpPreInc:      {"OpPreInc", []int{}},
+	OpPreDec:      {"OpPreDec", []int{}},
+	OpPostInc:     {"OpPostInc", []int{}},
+	OpPostDec:     {"OpPostDec", []int{}},
 }
 
 func Lookup(op byte) (*Definition, error) {

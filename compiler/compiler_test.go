@@ -81,6 +81,16 @@ func TestIntegerArithmetic(t *testing.T) {
 			},
 		},
 		{
+			input:             "5 & 5",
+			expectedConstants: []any{5, 5},
+			expectedInstructions: []code.Instructions{
+				code.Make(code.OpConstant, 0),
+				code.Make(code.OpConstant, 1),
+				code.Make(code.OpAmpersand),
+				code.Make(code.OpPop),
+			},
+		},
+		{
 			input:             "5 >> 5",
 			expectedConstants: []any{5, 5},
 			expectedInstructions: []code.Instructions{
@@ -97,6 +107,16 @@ func TestIntegerArithmetic(t *testing.T) {
 				code.Make(code.OpConstant, 0),
 				code.Make(code.OpConstant, 1),
 				code.Make(code.OpLShift),
+				code.Make(code.OpPop),
+			},
+		},
+		{
+			input:             "5 ^ 5",
+			expectedConstants: []any{5, 5},
+			expectedInstructions: []code.Instructions{
+				code.Make(code.OpConstant, 0),
+				code.Make(code.OpConstant, 1),
+				code.Make(code.OpExponent),
 				code.Make(code.OpPop),
 			},
 		},
@@ -131,6 +151,42 @@ func TestIntegerArithmetic(t *testing.T) {
 			expectedInstructions: []code.Instructions{
 				code.Make(code.OpConstant, 0),
 				code.Make(code.OpTilde),
+				code.Make(code.OpPop),
+			},
+		},
+		{
+			input:             "++5",
+			expectedConstants: []any{5},
+			expectedInstructions: []code.Instructions{
+				code.Make(code.OpConstant, 0),
+				code.Make(code.OpPreInc),
+				code.Make(code.OpPop),
+			},
+		},
+		{
+			input:             "--5",
+			expectedConstants: []any{5},
+			expectedInstructions: []code.Instructions{
+				code.Make(code.OpConstant, 0),
+				code.Make(code.OpPreDec),
+				code.Make(code.OpPop),
+			},
+		},
+		{
+			input:             "5++",
+			expectedConstants: []any{5},
+			expectedInstructions: []code.Instructions{
+				code.Make(code.OpConstant, 0),
+				code.Make(code.OpPostInc),
+				code.Make(code.OpPop),
+			},
+		},
+		{
+			input:             "5--",
+			expectedConstants: []any{5},
+			expectedInstructions: []code.Instructions{
+				code.Make(code.OpConstant, 0),
+				code.Make(code.OpPostDec),
 				code.Make(code.OpPop),
 			},
 		},
