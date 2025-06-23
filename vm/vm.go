@@ -81,17 +81,11 @@ func (vm *VM) Run() error {
 			if err != nil {
 				return err
 			}
-		case code.OpMinus, code.OpTilde:
-			err := vm.executePrefixIntegerArithmeticOperation(op)
+		case code.OpMinus, code.OpTilde, code.OpPreInc, code.OpPreDec, code.OpPostInc, code.OpPostDec:
+			err := vm.executeUnaryOperation(op)
 			if err != nil {
 				return err
 			}
-		case code.OpPreInc, code.OpPreDec, code.OpPostInc, code.OpPostDec:
-			err := vm.executeIncrementDecrementOperator(op)
-			if err != nil {
-				return err
-			}
-
 		}
 
 	}
@@ -206,7 +200,7 @@ func (vm *VM) executeBangOperator() error {
 	}
 }
 
-func (vm *VM) executePrefixIntegerArithmeticOperation(op code.Opcode) error {
+func (vm *VM) executeUnaryOperation(op code.Opcode) error {
 	operand := vm.pop()
 	if operand.Type() != object.INTERGER_OBJ {
 		return fmt.Errorf("unsupported type for negation: %s", operand.Type())
@@ -218,20 +212,6 @@ func (vm *VM) executePrefixIntegerArithmeticOperation(op code.Opcode) error {
 		return vm.push(&object.Integer{Value: -val})
 	case code.OpTilde:
 		return vm.push(&object.Integer{Value: ^val})
-	}
-
-	return nil
-
-}
-
-func (vm *VM) executeIncrementDecrementOperator(op code.Opcode) error {
-	operand := vm.pop()
-	if operand.Type() != object.INTERGER_OBJ {
-		return fmt.Errorf("unsupported type for negation: %s", operand.Type())
-	}
-
-	val := operand.(*object.Integer).Value
-	switch op {
 	case code.OpPreInc, code.OpPreDec:
 		return vm.executePrefixIncrementDecrementOperator(op, val)
 	case code.OpPostInc, code.OpPostDec:
