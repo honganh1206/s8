@@ -54,6 +54,8 @@ const (
 
 	// Conditional
 	OpJumpNotTruthy
+	// OpJumpNotTruthy must have an offset
+	// pointing to instructions right after BlockStatement of Consequence.
 	OpJump
 )
 
@@ -72,28 +74,30 @@ var definitions = map[Opcode]*Definition{
 	// That's more than enough. We won't be having more than 65536 references
 	OpConstant: {"OpConstant", []int{2}},
 	// No operand
-	OpAdd:           {"OpAdd", []int{}},
-	OpPop:           {"OpPop", []int{}},
-	OpSub:           {"OpSub", []int{}},
-	OpMul:           {"OpMul", []int{}},
-	OpDiv:           {"OpDiv", []int{}},
-	OpTrue:          {"OpTrue", []int{}},
-	OpFalse:         {"OpFalse", []int{}},
-	OpEqual:         {"OpEqual", []int{}},
-	OpNotEqual:      {"OpNotEqual", []int{}},
-	OpGreaterThan:   {"OpGreaterThan", []int{}},
-	OpAmpersand:     {"OpAmpersand", []int{}},
-	OpMinus:         {"OpMinus", []int{}},
-	OpBang:          {"OpBang", []int{}},
-	OpTilde:         {"OpTilde", []int{}},
-	OpPipe:          {"OpPipe", []int{}},
-	OpRShift:        {"OpRShift", []int{}},
-	OpLShift:        {"OpLShift", []int{}},
-	OpExponent:      {"OpExponent", []int{}},
-	OpPreInc:        {"OpPreInc", []int{}},
-	OpPreDec:        {"OpPreDec", []int{}},
-	OpPostInc:       {"OpPostInc", []int{}},
-	OpPostDec:       {"OpPostDec", []int{}},
+	OpAdd:         {"OpAdd", []int{}},
+	OpPop:         {"OpPop", []int{}},
+	OpSub:         {"OpSub", []int{}},
+	OpMul:         {"OpMul", []int{}},
+	OpDiv:         {"OpDiv", []int{}},
+	OpTrue:        {"OpTrue", []int{}},
+	OpFalse:       {"OpFalse", []int{}},
+	OpEqual:       {"OpEqual", []int{}},
+	OpNotEqual:    {"OpNotEqual", []int{}},
+	OpGreaterThan: {"OpGreaterThan", []int{}},
+	OpAmpersand:   {"OpAmpersand", []int{}},
+	OpMinus:       {"OpMinus", []int{}},
+	OpBang:        {"OpBang", []int{}},
+	OpTilde:       {"OpTilde", []int{}},
+	OpPipe:        {"OpPipe", []int{}},
+	OpRShift:      {"OpRShift", []int{}},
+	OpLShift:      {"OpLShift", []int{}},
+	OpExponent:    {"OpExponent", []int{}},
+	OpPreInc:      {"OpPreInc", []int{}},
+	OpPreDec:      {"OpPreDec", []int{}},
+	OpPostInc:     {"OpPostInc", []int{}},
+	OpPostDec:     {"OpPostDec", []int{}},
+	// We currently do absolute jump here
+	// The operand is the index of the instruction
 	OpJump:          {"OpJump", []int{2}},
 	OpJumpNotTruthy: {"OpJumpNotTruthy", []int{2}},
 }

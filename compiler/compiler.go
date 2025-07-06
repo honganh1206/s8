@@ -159,18 +159,19 @@ func (c *Compiler) Compile(node ast.Node) error {
 		if err != nil {
 			return err
 		}
-		// OpJumpNotTruthy must have an offset pointing to instructions right after BlockStatement of Consequence
-		// But that must happen BEFORE we compile Consequence - How?
-		// A bogus value for now
-		c.emit(code.OpJumpNotTruthy, 9999)
+		// We can later modify the operand of OpJumpNotTruthy
+		// AFTER we compile node.Consequence,
+		// that way we know how far the VM has to jump.
+		// This is called back-patching
+		jumpNotTruthyPos := c.emit(code.OpJumpNotTruthy, 9999)
 
 		err = c.Compile(node.Consequence)
 		if err != nil {
 			return err
 		}
 
-		// node.Consequence will also be compiled as an expression statement
-		// Thus there will be an additional OpPop but we need to retain the latest statement
+		// node.Consequence will also be compiled as an expression statement,
+		// thus there will be an additional OpPop but we need to retain the latest statement
 		// We need to get rid of this
 		// since Consequence and Alternative need to leave a value on the stack
 		// if (true) {
@@ -180,6 +181,33 @@ func (c *Compiler) Compile(node ast.Node) error {
 		// }
 		if c.lastInstructionIsPop() {
 			c.removeLastPop()
+		}
+
+		if node.Alternative == nil {
+			// Jump to statements outside of If block
+			afterConsequencePos := len(c.instructions)
+			c.changeOperand(jumpNotTruthyPos, afterConsequencePos)
+		} else {
+			// Part of node.Consequence to skip over the else branch
+			// in case the condition is truthy
+			jumpPos := c.emit(code.OpJump, 9999)
+
+			// Jump to node.Alternative
+			afterConsequencePos := len(c.instructions)
+			c.changeOperand(jumpNotTruthyPos, afterConsequencePos)
+
+			err := c.Compile(node.Alternative)
+			if err != nil {
+				return err
+			}
+
+			if c.lastInstructionIsPop() {
+				c.removeLastPop()
+			}
+
+			// Jump to statements outside of If-Else block
+			afterAlternativePos := len(c.instructions)
+			c.changeOperand(jumpPos, afterAlternativePos)
 		}
 	case *ast.BlockStatement:
 		for _, s := range node.Statements {
@@ -242,4 +270,21 @@ func (c *Compiler) lastInstructionIsPop() bool {
 func (c *Compiler) removeLastPop() {
 	c.instructions = c.instructions[:c.lastInstruction.Position]
 	c.lastInstruction = c.previousInstruction
+}
+
+// Replace an instruction at an arbitrary offset (pos)
+// in the isntruction slice
+func (c *Compiler) replaceInstructions(pos int, newInstruction []byte) {
+	for i := range newInstruction {
+		c.instructions[pos+i] = newInstruction[i]
+	}
+}
+
+// Re-create the instruction with the new operand
+// assuming we only replace instructions of the same type
+func (c *Compiler) changeOperand(opPos int, operand int) {
+	op := code.Opcode(c.instructions[opPos])
+	newInstruction := code.Make(op, operand)
+
+	c.replaceInstructions(opPos, newInstruction)
 }
