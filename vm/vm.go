@@ -86,6 +86,23 @@ func (vm *VM) Run() error {
 			if err != nil {
 				return err
 			}
+		case code.OpJump:
+			// Set the instruction pointer (ip)
+			// to right before the instruction we want to execute
+			pos := int(code.ReadUint16(vm.instructions[ip+1:]))
+			ip = pos - 1
+		case code.OpJumpNotTruthy:
+			pos := int(code.ReadUint16(vm.instructions[ip+1:]))
+			// Again pointing to the next opcode
+			// just like how OpConstant does that
+			ip += 2
+
+			condition := vm.pop()
+			if !isTruthy(condition) {
+				// Set the instruction pointer right before the target instruction
+				// then let the for-loop do its work
+				ip = pos - 1
+			}
 		}
 
 	}
@@ -255,4 +272,13 @@ func (vm *VM) executePrefixIncrementDecrementOperator(op code.Opcode, val int64)
 func (vm *VM) executePostfixIncrementDecrementOperator(op code.Opcode, val int64) error {
 	// TODO: Set to environment later
 	return vm.push(&object.Integer{Value: val})
+}
+
+func isTruthy(obj object.Object) bool {
+	switch obj := obj.(type) {
+	case *object.Boolean:
+		return obj.Value
+	default:
+		return true
+	}
 }
