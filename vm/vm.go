@@ -11,6 +11,7 @@ const StackSize = 2048
 
 var True = &object.Boolean{Value: true}
 var False = &object.Boolean{Value: false}
+var Null = &object.Null{}
 
 type VM struct {
 	// constant pool
@@ -102,6 +103,11 @@ func (vm *VM) Run() error {
 				// Set the instruction pointer right before the target instruction
 				// then let the for-loop do its work
 				ip = pos - 1
+			}
+		case code.OpNull:
+			err := vm.push(Null)
+			if err != nil {
+				return err
 			}
 		}
 
@@ -212,6 +218,8 @@ func (vm *VM) executeBangOperator() error {
 		return vm.push(False)
 	case False:
 		return vm.push(True)
+	case Null:
+		return vm.push(True)
 	default:
 		return vm.push(False)
 	}
@@ -278,6 +286,8 @@ func isTruthy(obj object.Object) bool {
 	switch obj := obj.(type) {
 	case *object.Boolean:
 		return obj.Value
+	case *object.Null:
+		return false
 	default:
 		return true
 	}

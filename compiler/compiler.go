@@ -183,19 +183,16 @@ func (c *Compiler) Compile(node ast.Node) error {
 			c.removeLastPop()
 		}
 
+		// We need this whether we have the Alternative or not
+		// to jump to the next instruction after If-Else
+		jumpPos := c.emit(code.OpJump, 9999)
+
+		afterConsequencePos := len(c.instructions)
+		c.changeOperand(jumpNotTruthyPos, afterConsequencePos)
+
 		if node.Alternative == nil {
-			// Jump to statements outside of If block
-			afterConsequencePos := len(c.instructions)
-			c.changeOperand(jumpNotTruthyPos, afterConsequencePos)
+			c.emit(code.OpNull)
 		} else {
-			// Part of node.Consequence to skip over the else branch
-			// in case the condition is truthy
-			jumpPos := c.emit(code.OpJump, 9999)
-
-			// Jump to node.Alternative
-			afterConsequencePos := len(c.instructions)
-			c.changeOperand(jumpNotTruthyPos, afterConsequencePos)
-
 			err := c.Compile(node.Alternative)
 			if err != nil {
 				return err
@@ -204,11 +201,11 @@ func (c *Compiler) Compile(node ast.Node) error {
 			if c.lastInstructionIsPop() {
 				c.removeLastPop()
 			}
-
-			// Jump to statements outside of If-Else block
-			afterAlternativePos := len(c.instructions)
-			c.changeOperand(jumpPos, afterAlternativePos)
 		}
+		// If not truthy but we have Alternatiive, jump to statements outside of Else block
+		// If not truthy but there is no Alternative, jump to OpNull
+		afterAlternativePos := len(c.instructions)
+		c.changeOperand(jumpPos, afterAlternativePos)
 	case *ast.BlockStatement:
 		for _, s := range node.Statements {
 			err := c.Compile(s)
@@ -237,8 +234,8 @@ func (c *Compiler) addConstant(obj object.Object) int {
 	return len(c.constants) - 1
 }
 
-// "emit" is a compiler's term for "generate" and "output"
-// Generate an instruction and add it to the results (could be a file, memory collection, etc.)
+// "emit" is a compiler's term for "generate" and "output".
+// Generate an instruction and add it to the internal instructions slice
 func (c *Compiler) emit(op code.Opcode, operands ...int) int {
 	ins := code.Make(op, operands...)
 	pos := c.addInstruction(ins)

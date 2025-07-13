@@ -281,6 +281,30 @@ func TestConditionals(t *testing.T) {
 	tests := []compilerTestCase{
 		{
 			input: `
+		if (true) { 10 }; 3333;
+		`,
+			expectedConstants: []any{10, 3333},
+			expectedInstructions: []code.Instructions{
+				// 0000 - Push vm.True to the stack
+				code.Make(code.OpTrue),
+				// 0001 - If false move to the alternative
+				code.Make(code.OpJumpNotTruthy, 10),
+				// 0004 - Consequence: Push 10 to the stack
+				code.Make(code.OpConstant, 0),
+				// 0007 - Break out of the block statement
+				code.Make(code.OpJump, 11),
+				// 0010 - No Alternative
+				code.Make(code.OpNull),
+				// 0011 - Pop off Null if not truthy, or 10 if truthy
+				code.Make(code.OpPop),
+				// 00012 - Push 3333 to the stack
+				code.Make(code.OpConstant, 1),
+				// 0015 - Remove 3333 off the stack
+				code.Make(code.OpPop),
+			},
+		},
+		{
+			input: `
 		if (true) { 10 } else { 20 }; 3333;
 		`,
 			expectedConstants: []any{10, 20, 3333},
