@@ -1073,6 +1073,85 @@ func TestMacroLiteralParsing(t *testing.T) {
 	testInfixExpression(t, bodyStmt.Expression, "x", "y", "+")
 }
 
+func TestWhileStatementParsing(t *testing.T) {
+	tests := []struct {
+		input             string
+		expectedCondition string
+		expectedOperator  string
+		expectedRight     any
+		expectedBodyStmts int
+	}{
+		{
+			"while (x < 10) { x; }",
+			"x",
+			"<",
+			10,
+			1,
+		},
+		{
+			"while (counter > 0) { counter; return 5; }",
+			"counter",
+			">",
+			0,
+			2,
+		},
+		{
+			"while (true) { 42; }",
+			"",
+			"",
+			true,
+			1,
+		},
+		{
+			"while (i > 0) { i; }",
+			"i",
+			">",
+			0,
+			1,
+		},
+	}
+
+	for _, tt := range tests {
+		l := lexer.New(tt.input)
+		p := New(l)
+		program := p.ParseProgram()
+		checkParserErrors(t, p)
+
+		if len(program.Statements) != 1 {
+			t.Fatalf("program.Statements does not contain 1 statement. got: %d",
+				len(program.Statements))
+		}
+
+		stmt, ok := program.Statements[0].(*ast.WhileStatement)
+		if !ok {
+			t.Fatalf("program.Statements[0] is not ast.WhileStatement. got: %T",
+				program.Statements[0])
+		}
+
+		if stmt.TokenLiteral() != "while" {
+			t.Errorf("stmt.TokenLiteral() not 'while'. got: %q",
+				stmt.TokenLiteral())
+		}
+
+		// Test condition based on expected values
+		if tt.expectedCondition != "" && tt.expectedOperator != "" {
+			if !testInfixExpression(t, stmt.Condition, tt.expectedCondition, tt.expectedRight, tt.expectedOperator) {
+				return
+			}
+		} else if tt.expectedRight == true {
+			// Test for boolean literal condition
+			if !testBooleanLiteral(t, stmt.Condition, true) {
+				return
+			}
+		}
+
+		if len(stmt.Body.Statements) != tt.expectedBodyStmts {
+			t.Errorf("stmt.Body.Statements does not contain %d statements. got: %d",
+				tt.expectedBodyStmts, len(stmt.Body.Statements))
+		}
+	}
+}
+
 /*
 	TEST HELPERS
 */

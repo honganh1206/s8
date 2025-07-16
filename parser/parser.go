@@ -229,6 +229,8 @@ func (p *Parser) parseStatement() ast.Statement {
 		return p.parseLetStatement()
 	case token.RETURN:
 		return p.parseReturnStatement()
+	case token.WHILE:
+		return p.parseWhileStatement()
 	default:
 		return p.parseExpressionStatement()
 	}
@@ -492,6 +494,28 @@ func (p *Parser) parseIfExpression() ast.Expression {
 		expr.Alternative = p.parseBlockStatement()
 
 	}
+
+	return expr
+}
+
+func (p *Parser) parseWhileStatement() *ast.WhileStatement {
+	expr := &ast.WhileStatement{Token: p.currentToken}
+	if !p.expectPeek(token.LPAREN) {
+		return nil
+	}
+
+	p.nextToken()
+
+	expr.Condition = p.parseExpression(LOWEST)
+	if !p.expectPeek(token.RPAREN) {
+		return nil
+	}
+
+	if !p.expectPeek(token.LBRACE) {
+		return nil
+	}
+
+	expr.Body = p.parseBlockStatement()
 
 	return expr
 }

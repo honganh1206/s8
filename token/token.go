@@ -16,6 +16,8 @@ var keywords = map[string]TokenType{
 	"else":   ELSE,
 	"return": RETURN,
 	"macro":  MACRO,
+	"for":    FOR,
+	"while":  WHILE,
 }
 
 const (
@@ -66,6 +68,9 @@ const (
 	IF       = "IF"
 	ELSE     = "ELSE"
 	RETURN   = "RETURN"
+	FOR      = "FOR"
+	WHILE    = "WHILE"
+	// TODO: Add break, continue and return to break loop
 
 	// Data types
 	STRING = "STRING"

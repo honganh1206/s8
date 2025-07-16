@@ -140,6 +140,36 @@ func (rs *ReturnStatement) String() string {
 	return out.String()
 }
 
+type ForStatement struct {
+	Token token.Token
+	// We need var declaration, comparison and postfix increment as expressions?
+	// and the body will be block statement
+}
+
+type WhileStatement struct {
+	Token     token.Token
+	Condition Expression
+	Body      *BlockStatement
+}
+
+func (ws *WhileStatement) statementNode() {}
+
+func (ws *WhileStatement) TokenLiteral() string {
+	return ws.Token.Literal
+}
+
+func (ws *WhileStatement) String() string {
+	var out bytes.Buffer
+
+	out.WriteString(ws.TokenLiteral())
+	out.WriteString(" (")
+	out.WriteString(ws.Condition.String())
+	out.WriteString(") ")
+	out.WriteString(ws.Body.String())
+
+	return out.String()
+}
+
 type ExpressionStatement struct {
 	Token      token.Token // 1st token of the expression
 	Expression Expression
@@ -479,6 +509,28 @@ func (ie *IndexExpression) String() string {
 	out.WriteString("[")
 	out.WriteString(ie.Index.String())
 	out.WriteString("])")
+
+	return out.String()
+}
+
+type AssignmentExpression struct {
+	Token token.Token // The ASSIGN token
+	Left  Expression  // The identifier to assign to
+	Right Expression  // The value to assign
+}
+
+func (ae *AssignmentExpression) expressionNode() {}
+
+func (ae *AssignmentExpression) TokenLiteral() string { return ae.Token.Literal }
+
+func (ae *AssignmentExpression) String() string {
+	var out bytes.Buffer
+
+	out.WriteString("(")
+	out.WriteString(ae.Left.String())
+	out.WriteString(" = ")
+	out.WriteString(ae.Right.String())
+	out.WriteString(")")
 
 	return out.String()
 }

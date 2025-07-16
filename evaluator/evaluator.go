@@ -74,6 +74,8 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 
 		// Bind the value to the identifier
 		env.Set(node.Name.Value, val)
+	case *ast.WhileStatement:
+		return evalWhileStatement(node, env)
 	case *ast.Identifier:
 		return evalIdentifier(node, env)
 	case *ast.FunctionLiteral:
@@ -255,9 +257,10 @@ func evalIncreDecrePrefixOperatorExpression(node *ast.PrefixExpression, right ob
 	}
 
 	var newVal int64
-	if node.Operator == token.INCREMENT {
+	switch node.Operator {
+	case token.INCREMENT:
 		newVal = val.Value + 1
-	} else if node.Operator == token.DECREMENT {
+	case token.DECREMENT:
 		newVal = val.Value - 1
 	}
 
@@ -280,9 +283,10 @@ func evalIncreDecrePostfixOperatorExpression(node *ast.PostfixExpression, left o
 	}
 
 	var newVal int64
-	if node.Operator == token.INCREMENT {
+	switch node.Operator {
+	case token.INCREMENT:
 		newVal = val.Value + 1
-	} else if node.Operator == token.DECREMENT {
+	case token.DECREMENT:
 		newVal = val.Value - 1
 	}
 
@@ -419,6 +423,26 @@ func evalIfExpression(ie *ast.IfExpression, env *object.Environment) object.Obje
 	} else {
 		return NULL
 	}
+}
+
+func evalWhileStatement(we *ast.WhileStatement, env *object.Environment) object.Object {
+	var body object.Object
+	for {
+		condition := Eval(we.Condition, env)
+		if isError(condition) {
+			return condition
+		}
+
+		if !isTruthy(condition) {
+			break
+		}
+
+		body = Eval(we.Body, env)
+		if isError(body) {
+			break
+		}
+	}
+	return body
 }
 
 func isTruthy(obj object.Object) bool {

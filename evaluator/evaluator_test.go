@@ -708,6 +708,35 @@ func TestHashIndexExpression(t *testing.T) {
 HELPER FUNCTIONS
 */
 
+func TestWhileStatements(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected any
+	}{
+		{"let i = 0; while (i < 3) { i++; } i;", 3},
+		// Simple while loop with counter
+		{"let i = 0; while (i < 3) { i = i + 1; } i;", 3},
+		// While loop with multiplication
+		{"let x = 1; while (x < 10) { x = x * 2; } x;", 16},
+		// While loop that doesn't execute
+		{"let y = 5; while (y > 10) { y = y + 1; } y;", 5},
+		// While loop with boolean condition
+		{"let flag = true; let count = 0; while (flag) { count = count + 1; if (count > 2) { flag = false; } } count;", 3},
+		// While loop with return statement
+		{"let i = 0; while (i < 5) { i = i + 1; if (i == 3) { return i; } } return -1;", 3},
+	}
+
+	for _, tt := range tests {
+		evaluated := testEval(tt.input)
+		switch expected := tt.expected.(type) {
+		case int:
+			testIntegerObject(t, evaluated, int64(expected))
+		case int64:
+			testIntegerObject(t, evaluated, expected)
+		}
+	}
+}
+
 func testEval(input string) object.Object {
 	l := lexer.New(input)
 	p := parser.New(l)
