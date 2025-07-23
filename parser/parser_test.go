@@ -1152,6 +1152,72 @@ func TestWhileStatementParsing(t *testing.T) {
 	}
 }
 
+func TestAssignmentExpressionParsing(t *testing.T) {
+	tests := []struct {
+		input      string
+		leftValue  string
+		rightValue any
+	}{
+		// {"x = 5;", "x", 5},
+		// {"y = 10;", "y", 10},
+		{"greet = \"hello\";", "greet", "hello"},
+		// {"flag = true;", "flag", true},
+		// {"counter = 0;", "counter", 0},
+	}
+
+	for _, tt := range tests {
+		l := lexer.New(tt.input)
+		p := New(l)
+		program := p.ParseProgram()
+		checkParserErrors(t, p)
+
+		if len(program.Statements) != 1 {
+			t.Fatalf("program.Statements does not contain 1 statement. got: %d", len(program.Statements))
+		}
+
+		stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+		if !ok {
+			t.Fatalf("program.Statements[0] is not ast.ExpressionStatement. got: %T", program.Statements[0])
+		}
+
+		testAssignmentExpression(t, stmt.Expression, tt.leftValue, tt.rightValue)
+	}
+}
+
+func TestAssignmentExpressionPrecedence(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		// Assignment has lower precedence than arithmetic
+		{"x = 5 + 3;", "(x = (5 + 3))"},
+		{"y = a * b;", "(y = (a * b))"},
+		{"z = 10 - 5;", "(z = (10 - 5))"},
+
+		// Assignment has lower precedence than comparison
+		{"flag = x > 5;", "(flag = (x > 5))"},
+		{"result = a == b;", "(result = (a == b))"},
+
+		// Multiple assignments (right associative)
+		{"x = y = 5;", "(x = (y = 5))"},
+
+		// Assignment with function calls
+		{"result = func(x);", "(result = func(x))"},
+	}
+
+	for _, tt := range tests {
+		l := lexer.New(tt.input)
+		p := New(l)
+		program := p.ParseProgram()
+		checkParserErrors(t, p)
+
+		actual := program.String()
+		if actual != tt.expected {
+			t.Errorf("expected=%q, got=%q", tt.expected, actual)
+		}
+	}
+}
+
 /*
 	TEST HELPERS
 */
@@ -1165,13 +1231,15 @@ func testLiteralExpression(t *testing.T, expr ast.Expression, expected any) bool
 	case float64:
 		return testFloatLiteral(t, expr, v)
 	case string:
+		if strLit, ok := expr.(*ast.StringLiteral); ok {
+			return testStringLiteral(t, strLit, v)
+		}
 		return testIdentifier(t, expr, v)
 	case bool:
 		return testBooleanLiteral(t, expr, v)
 	}
 
 	t.Errorf("type of expr not handled. got: %T", expr)
-
 	return false
 }
 
@@ -1276,6 +1344,38 @@ func testBooleanLiteral(t *testing.T, expr ast.Expression, value bool) bool {
 
 	if bo.TokenLiteral() != fmt.Sprintf("%t", value) {
 		t.Errorf("ident.TokenLiteral() not %t. got: %s", value, bo.TokenLiteral())
+		return false
+	}
+
+	return true
+}
+
+func testStringLiteral(t *testing.T, expr *ast.StringLiteral, value string) bool {
+	if expr.Value != value {
+		t.Errorf("expr.Value not %s. got: %s", value, expr.Value)
+		return false
+	}
+
+	if expr.TokenLiteral() != value {
+		t.Errorf("expr.TokenLiteral() not %s. got: %s", value, expr.TokenLiteral())
+		return false
+	}
+
+	return true
+}
+
+func testAssignmentExpression(t *testing.T, expr ast.Expression, left string, right any) bool {
+	assignExpr, ok := expr.(*ast.AssignmentExpression)
+	if !ok {
+		t.Errorf("expr not ast.AssignmentExpression. got: %T", expr)
+		return false
+	}
+
+	if !testIdentifier(t, assignExpr.Left, left) {
+		return false
+	}
+
+	if !testLiteralExpression(t, assignExpr.Right, right) {
 		return false
 	}
 

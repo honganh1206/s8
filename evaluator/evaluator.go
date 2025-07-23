@@ -74,6 +74,23 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 
 		// Bind the value to the identifier
 		env.Set(node.Name.Value, val)
+	case *ast.AssignmentExpression:
+		val := Eval(node.Right, env)
+		if isError(val) {
+			return val
+		}
+
+		ident, ok := node.Left.(*ast.Identifier)
+		if !ok {
+			return newError("cannot assign to %T", node.Left)
+		}
+
+		if _, ok := env.Get(ident.Value); !ok {
+			return newError("identifier not found: " + ident.Value)
+		}
+
+		env.Set(ident.Value, val)
+		return val
 	case *ast.WhileStatement:
 		return evalWhileStatement(node, env)
 	case *ast.Identifier:
@@ -441,6 +458,7 @@ func evalWhileStatement(we *ast.WhileStatement, env *object.Environment) object.
 		if isError(body) {
 			break
 		}
+		// TODO: Support for early return
 	}
 	return body
 }

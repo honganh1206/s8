@@ -12,6 +12,7 @@ import (
 const (
 	_ int = iota // Give the following constants incrementing numbers as value
 	LOWEST
+	ASSIGN
 	EQUALS      // ==
 	CONDITIONAL // ? and :
 	LESSGREATER // > or <
@@ -43,6 +44,7 @@ var precedences = map[token.TokenType]int{
 	token.AMPERSAND: BITWISE,
 	token.RSHIFT:    BITWISE,
 	token.LSHIFT:    BITWISE,
+	token.ASSIGN:    ASSIGN,
 }
 
 type (
@@ -118,6 +120,9 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerInfix(token.LSHIFT, p.parseInfixExpression)
 	p.registerInfix(token.AMPERSAND, p.parseInfixExpression)
 	p.registerInfix(token.EXPONENT, p.parseInfixExpression)
+	// Assign binds two expressions e.g., a = b + c
+	// so it makes sense we make it an infix
+	p.registerInfix(token.ASSIGN, p.parseAssignExpression)
 
 	p.postfixParseFns = make(map[token.TokenType]postfixParseFn)
 	precedences[token.INCREMENT] = POSTFIX
@@ -244,7 +249,6 @@ func (p *Parser) parseLetStatement() *ast.LetStatement {
 		return nil
 	}
 
-	// Construct an *ast.Identifier node e.g., foobar
 	stmt.Name = &ast.Identifier{Token: p.currentToken, Value: p.currentToken.Literal}
 
 	if !p.expectPeek(token.ASSIGN) {
@@ -427,6 +431,21 @@ func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
 	// } else {
 	expr.Right = p.parseExpression(precedence)
 	// }
+
+	return expr
+}
+
+func (p *Parser) parseAssignExpression(left ast.Expression) ast.Expression {
+	expr := &ast.AssignmentExpression{
+		Token: p.currentToken,
+		Left:  left,
+	}
+
+	p.nextToken()
+	// When we are done parsing the identifier, the current precedence is the lowest,
+	// but we still need to pass in LOWEST as an argument
+	// so we can recursively parse the right-side value
+	expr.Right = p.parseExpression(LOWEST)
 
 	return expr
 }
