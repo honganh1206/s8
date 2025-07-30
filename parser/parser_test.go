@@ -1109,6 +1109,20 @@ func TestWhileStatementParsing(t *testing.T) {
 			0,
 			1,
 		},
+		{
+			"while (i < 10) { i; if (i == 2) { break; } }",
+			"i",
+			"<",
+			10,
+			2,
+		},
+		{
+			"while (i < 10) { i; if (i == 2) { continue; } }",
+			"i",
+			"<",
+			10,
+			2,
+		},
 	}
 
 	for _, tt := range tests {

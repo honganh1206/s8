@@ -805,15 +805,34 @@ func TestWhileStatements(t *testing.T) {
 		{"let flag = true; let count = 0; while (flag) { count = count + 1; if (count > 2) { flag = false; } } count;", 3},
 		// While loop with return statement
 		{"let i = 0; while (i < 5) { i = i + 1; if (i == 3) { return i; } }; i", 3},
+		// While loop with break statement
+		{"let i = 0; while (i < 10) { i = i + 1; if (i == 3) { break; } } i;", 3},
+		// While loop with continue statement
+		{"let i = 0; let sum = 0; while (i < 5) { i = i + 1; if (i == 3) { continue; } sum = sum + i; } sum;", 12},
+		// While loop with nested break
+		{"let i = 0; let found = false; while (i < 10) { i = i + 1; if (i > 5) { found = true; break; } } found;", true},
+		// While loop with multiple continues - skip odd numbers (1, 3, 5, 7, 9)
+		// TODO: Implement AND and OR infix expr
+		// {"let i = 0; let count = 0; while (i < 10) { i = i + 1; if (i == 1 || i == 3 || i == 5 || i == 7 || i == 9) { continue; } count = count + 1; } count;", 5},
+		// While loop with break in nested if
+		{"let i = 0; while (true) { i = i + 1; if (i > 5) { if (i == 7) { break; } } } i;", 7},
 	}
 
-	for _, tt := range tests {
+	for i, tt := range tests {
 		evaluated := testEval(tt.input)
 		switch expected := tt.expected.(type) {
 		case int:
-			testIntegerObject(t, evaluated, int64(expected))
+			if !testIntegerObject(t, evaluated, int64(expected)) {
+				t.Errorf("Test case %d failed: input=%q, expected=%d", i, tt.input, expected)
+			}
 		case int64:
-			testIntegerObject(t, evaluated, expected)
+			if !testIntegerObject(t, evaluated, expected) {
+				t.Errorf("Test case %d failed: input=%q, expected=%d", i, tt.input, expected)
+			}
+		case bool:
+			if !testBooleanObject(t, evaluated, expected) {
+				t.Errorf("Test case %d failed: input=%q, expected=%t", i, tt.input, expected)
+			}
 		}
 	}
 }

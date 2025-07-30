@@ -170,6 +170,42 @@ func (ws *WhileStatement) String() string {
 	return out.String()
 }
 
+type BreakStatement struct {
+	Token token.Token
+}
+
+func (bs *BreakStatement) statementNode() {}
+
+func (bs *BreakStatement) TokenLiteral() string {
+	return bs.Token.Literal
+}
+
+func (bs *BreakStatement) String() string {
+	var out bytes.Buffer
+
+	out.WriteString(bs.TokenLiteral())
+
+	return out.String()
+}
+
+type ContinueStatement struct {
+	Token token.Token
+}
+
+func (cs *ContinueStatement) statementNode() {}
+
+func (cs *ContinueStatement) TokenLiteral() string {
+	return cs.Token.Literal
+}
+
+func (bs *ContinueStatement) String() string {
+	var out bytes.Buffer
+
+	out.WriteString(bs.TokenLiteral())
+
+	return out.String()
+}
+
 type ExpressionStatement struct {
 	Token      token.Token // 1st token of the expression
 	Expression Expression

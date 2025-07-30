@@ -8,16 +8,18 @@ type Token struct {
 }
 
 var keywords = map[string]TokenType{
-	"funk":   FUNCTION,
-	"let":    LET,
-	"true":   TRUE,
-	"false":  FALSE,
-	"if":     IF,
-	"else":   ELSE,
-	"return": RETURN,
-	"macro":  MACRO,
-	"for":    FOR,
-	"while":  WHILE,
+	"funk":     FUNCTION,
+	"let":      LET,
+	"true":     TRUE,
+	"false":    FALSE,
+	"if":       IF,
+	"else":     ELSE,
+	"return":   RETURN,
+	"macro":    MACRO,
+	"for":      FOR,
+	"while":    WHILE,
+	"break":    BREAK,
+	"continue": CONTINUE,
 }
 
 const (
@@ -70,7 +72,8 @@ const (
 	RETURN   = "RETURN"
 	FOR      = "FOR"
 	WHILE    = "WHILE"
-	// TODO: Add break, continue and return to break loop
+	BREAK    = "BREAK"
+	CONTINUE = "CONTINUE"
 
 	// Data types
 	STRING = "STRING"

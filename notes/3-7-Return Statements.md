@@ -12,7 +12,7 @@ To support return statements, we will be passing a "return value" through our ev
 
 ## Nested block statements
 
-The problem is that _we cannot unwrap the value of `object.ReturnValue`_ on first sight! We need to keep track of it so we can stop the execution in the outermost block statement. This approach is to _handle early return cases_ in nested blocks/scopes
+The problem is that _we cannot unwrap the value of `object.ReturnValue`_ on first sight! We need to keep track of it, so we can stop the execution in the outermost block statement. This approach is to _handle early return cases_ in nested blocks/scopes
 
 The point is that our `object.ReturnValue` will remain wrapped until it bubbles up back to `evalProgram()`. At that point it can be unwrapped. To do so we need to call the `evalBlockStatement()` recursively to handle the nested block statements
 

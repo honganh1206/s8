@@ -26,6 +26,8 @@ const (
 	IDENT_OBJ        = "IDENTIFIER"
 	QUOTE_OBJ        = "QUOTE"
 	MACRO_OBJ        = "MACRO"
+	BREAK_OBJ        = "BREAK"
+	CONTINUE_OBJ     = "CONTINUE"
 )
 
 // Interface instead of struct
@@ -72,6 +74,18 @@ type ReturnValue struct {
 func (rv *ReturnValue) Type() ObjectType { return RETURN_VALUE_OBJ }
 
 func (rv *ReturnValue) Inspect() string { return rv.Value.Inspect() }
+
+type Break struct{}
+
+func (b *Break) Type() ObjectType { return BREAK_OBJ }
+
+func (b *Break) Inspect() string { return "break" }
+
+type Continue struct{}
+
+func (c *Continue) Type() ObjectType { return CONTINUE_OBJ }
+
+func (c *Continue) Inspect() string { return "continue" }
 
 type Error struct {
 	Message string

@@ -66,6 +66,10 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 			return val
 		}
 		return &object.ReturnValue{Value: val}
+	case *ast.BreakStatement:
+		return &object.Break{}
+	case *ast.ContinueStatement:
+		return &object.Continue{}
 	case *ast.LetStatement:
 		val := Eval(node.Value, env)
 		if isError(val) {
@@ -168,10 +172,21 @@ func evalProgram(p *ast.Program, env *object.Environment) object.Object {
 }
 
 // This function will bubble up to the upper evalBlockStatement (in case of nested block statements)
-// Or to evalProgram, then the ReturnValue will get wrapped
-/*
-
- */
+// or to evalProgram, then the ReturnValue will get unwrapped
+// evalProgram
+//
+//	↑
+//	unwrapped to just 10 at evalProgram()
+//	|
+//	└── evalBlockStatement (outer if)
+//	    ↑
+//	    | bubbles up unchanged
+//	    ↑
+//	└── evalBlockStatement (inner if)
+//	    ↑
+//	    | bubbles up unchanged
+//	    ↑
+//	└── ReturnValue{Value: 10}
 func evalBlockStatement(bs *ast.BlockStatement, env *object.Environment) object.Object {
 	var result object.Object
 
@@ -181,7 +196,7 @@ func evalBlockStatement(bs *ast.BlockStatement, env *object.Environment) object.
 		// Plus result.Type() would cause a panic if result is nil
 		if result != nil {
 			rt := result.Type()
-			if rt == object.RETURN_VALUE_OBJ || rt == object.ERROR_OBJ {
+			if rt == object.RETURN_VALUE_OBJ || rt == object.ERROR_OBJ || rt == object.CONTINUE_OBJ {
 				// Still wrap the value inside *object.ReturnValue or *object.Error
 				return result
 			}
@@ -456,9 +471,21 @@ func evalWhileStatement(we *ast.WhileStatement, env *object.Environment) object.
 
 		body = Eval(we.Body, env)
 		if isError(body) {
+			return body
+		}
+
+		if isBreak(body) {
 			break
 		}
-		// TODO: Support for early return
+
+		if isContinue(body) {
+			continue
+		}
+
+		if isReturn(body) {
+			return body
+		}
+
 	}
 	return body
 }
@@ -484,7 +511,27 @@ func isError(obj object.Object) bool {
 	if obj != nil {
 		return obj.Type() == object.ERROR_OBJ
 	}
+	return false
+}
 
+func isBreak(obj object.Object) bool {
+	if obj != nil {
+		return obj.Type() == object.BREAK_OBJ
+	}
+	return false
+}
+
+func isContinue(obj object.Object) bool {
+	if obj != nil {
+		return obj.Type() == object.CONTINUE_OBJ
+	}
+	return false
+}
+
+func isReturn(obj object.Object) bool {
+	if obj != nil {
+		return obj.Type() == object.RETURN_VALUE_OBJ
+	}
 	return false
 }
 
