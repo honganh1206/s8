@@ -1075,11 +1075,11 @@ func TestMacroLiteralParsing(t *testing.T) {
 
 func TestWhileStatementParsing(t *testing.T) {
 	tests := []struct {
-		input             string
-		expectedCondition string
-		expectedOperator  string
-		expectedRight     any
-		expectedBodyStmts int
+		input                  string
+		expectedIdentifier     string
+		expectedOperator       string
+		expectedRight          any
+		expectedBodyStmtsCount int
 	}{
 		{
 			"while (x < 10) { x; }",
@@ -1148,8 +1148,8 @@ func TestWhileStatementParsing(t *testing.T) {
 		}
 
 		// Test condition based on expected values
-		if tt.expectedCondition != "" && tt.expectedOperator != "" {
-			if !testInfixExpression(t, stmt.Condition, tt.expectedCondition, tt.expectedRight, tt.expectedOperator) {
+		if tt.expectedIdentifier != "" && tt.expectedOperator != "" {
+			if !testInfixExpression(t, stmt.Condition, tt.expectedIdentifier, tt.expectedRight, tt.expectedOperator) {
 				return
 			}
 		} else if tt.expectedRight == true {
@@ -1159,12 +1159,131 @@ func TestWhileStatementParsing(t *testing.T) {
 			}
 		}
 
-		if len(stmt.Body.Statements) != tt.expectedBodyStmts {
+		if len(stmt.Body.Statements) != tt.expectedBodyStmtsCount {
 			t.Errorf("stmt.Body.Statements does not contain %d statements. got: %d",
-				tt.expectedBodyStmts, len(stmt.Body.Statements))
+				tt.expectedBodyStmtsCount, len(stmt.Body.Statements))
 		}
 	}
 }
+
+func TestForStatementParsing(t *testing.T) {
+	tests := []struct {
+		input                   string
+		expectedIdentifier      string
+		expectedInfixOperator   string
+		expectedRight           any
+		expectedPostfixOperator string
+		expectedBodyStmtsCount  int
+	}{
+		{
+			"for (let i = 0; i < 10; i++) { x + i; }",
+			"i",
+			"<",
+			10,
+			"++",
+			1,
+		},
+		// {
+		// 	"for (i = 5; i > 0; i--) { return i; }",
+		// 	"i",
+		// 	">",
+		// 	0,
+		// 	"--",
+		// 	1,
+		// },
+		// {
+		// 	"for (let x = 1; x <= 100; x = x * 2) { print(x); }",
+		// 	"x",
+		// 	"<=",
+		// 	"=",
+		// 	1,
+		// },
+	}
+
+	for _, tt := range tests {
+		l := lexer.New(tt.input)
+		p := New(l)
+		program := p.ParseProgram()
+		checkParserErrors(t, p)
+
+		if len(program.Statements) != 1 {
+			t.Fatalf("program.Statements does not contain 1 statements. got=%d",
+				len(program.Statements))
+		}
+
+		stmt, ok := program.Statements[0].(*ast.ForStatement)
+		if !ok {
+			t.Fatalf("program.Statements[0] is not ast.ForStatement. got=%T",
+				program.Statements[0])
+		}
+
+		if stmt.TokenLiteral() != "for" {
+			t.Errorf("stmt.TokenLiteral() not 'for'. got: %q",
+				stmt.TokenLiteral())
+		}
+
+		testLetStatement(t, stmt.Init, tt.expectedIdentifier)
+
+		if !testInfixExpression(t, stmt.Condition, tt.expectedIdentifier, tt.expectedRight, tt.expectedInfixOperator) {
+			return
+		}
+
+		if len(stmt.Body.Statements) != tt.expectedBodyStmtsCount {
+			t.Errorf("stmt.Body.Statements does not contain %d statements. got: %d",
+				tt.expectedBodyStmtsCount, len(stmt.Body.Statements))
+		}
+	}
+}
+
+// func TestForStatementParsingWithOptionalParts(t *testing.T) {
+// 	tests := []struct {
+// 		input        string
+// 		hasInit      bool
+// 		hasCondition bool
+// 		hasUpdate    bool
+// 	}{
+// 		{"for (;;) { x; }", false, false, false},
+// 		{"for (let i = 0;;) { x; }", true, false, false},
+// 		{"for (;i < 10;) { x; }", false, true, false},
+// 		{"for (;;i++) { x; }", false, false, true},
+// 		{"for (let i = 0; i < 10;) { x; }", true, true, false},
+// 		{"for (let i = 0;; i++) { x; }", true, false, true},
+// 		{"for (; i < 10; i++) { x; }", false, true, true},
+// 	}
+
+// 	for i, tt := range tests {
+// 		l := lexer.New(tt.input)
+// 		p := New(l)
+// 		program := p.ParseProgram()
+// 		checkParserErrors(t, p)
+
+// 		if len(program.Statements) != 1 {
+// 			t.Fatalf("program.Statements does not contain 1 statements. got=%d",
+// 				len(program.Statements))
+// 		}
+
+// 		stmt, ok := program.Statements[0].(*ast.ForStatement)
+// 		if !ok {
+// 			t.Fatalf("program.Statements[0] is not ast.ForStatement. got=%T",
+// 				program.Statements[0])
+// 		}
+
+// 		if (stmt.Init != nil) != tt.hasInit {
+// 			t.Errorf("tests[%d] - init presence wrong. expected=%t, got=%t",
+// 				i, tt.hasInit, stmt.Init != nil)
+// 		}
+
+// 		if (stmt.Condition != nil) != tt.hasCondition {
+// 			t.Errorf("tests[%d] - condition presence wrong. expected=%t, got=%t",
+// 				i, tt.hasCondition, stmt.Condition != nil)
+// 		}
+
+// 		if (stmt.Update != nil) != tt.hasUpdate {
+// 			t.Errorf("tests[%d] - update presence wrong. expected=%t, got=%t",
+// 				i, tt.hasUpdate, stmt.Update != nil)
+// 		}
+// 	}
+// }
 
 func TestAssignmentExpressionParsing(t *testing.T) {
 	tests := []struct {
@@ -1379,17 +1498,17 @@ func testStringLiteral(t *testing.T, expr *ast.StringLiteral, value string) bool
 }
 
 func testAssignmentExpression(t *testing.T, expr ast.Expression, left string, right any) bool {
-	assignExpr, ok := expr.(*ast.AssignmentExpression)
+	assignExpr, ok := expr.(*ast.Assignment)
 	if !ok {
 		t.Errorf("expr not ast.AssignmentExpression. got: %T", expr)
 		return false
 	}
 
-	if !testIdentifier(t, assignExpr.Left, left) {
+	if !testIdentifier(t, assignExpr.Name, left) {
 		return false
 	}
 
-	if !testLiteralExpression(t, assignExpr.Right, right) {
+	if !testLiteralExpression(t, assignExpr.Value, right) {
 		return false
 	}
 

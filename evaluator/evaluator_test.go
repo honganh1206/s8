@@ -837,6 +837,187 @@ func TestWhileStatements(t *testing.T) {
 	}
 }
 
+func TestForStatements(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected int64
+	}{
+		{
+			`let sum = 0;
+			for (let i = 1; i <= 5; i++) {
+				sum = sum + i;
+			}
+			sum`,
+			15,
+		},
+		{
+			`let result = 1;
+			for (let i = 1; i <= 4; i++) {
+				result = result * i;
+			}
+			result`,
+			24,
+		},
+		{
+			`let count = 0;
+			for (let i = 0; i < 10; i++) {
+				count++;
+			}
+			count`,
+			10,
+		},
+		{
+			`let x = 0;
+			for (; x < 3; x++) {
+				x = x + 1;
+			}
+			x`,
+			3,
+		},
+		{
+			`let i = 0;
+			let sum = 0;
+			for (;;) {
+				if (i >= 3) {
+					break;
+				}
+				sum = sum + i;
+				i++;
+			}
+			sum`,
+			3,
+		},
+	}
+
+	for i, tt := range tests {
+		evaluated := testEval(tt.input)
+		testIntegerObject(t, evaluated, tt.expected)
+		if evaluated == nil {
+			t.Errorf("test[%d] - evaluated is nil", i)
+		}
+	}
+}
+
+func TestForStatementsWithBreakContinue(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected int64
+	}{
+		{
+			`let sum = 0;
+			for (let i = 0; i < 10; i++) {
+				if (i == 5) {
+					break;
+				}
+				sum = sum + i;
+			}
+			sum`,
+			10, // 0+1+2+3+4
+		},
+		{
+			`let sum = 0;
+			for (let i = 0; i < 5; i++) {
+				if (i == 2) {
+					continue;
+				}
+				sum = sum + i;
+			}
+			sum`,
+			8, // 0+1+3+4
+		},
+		{
+			`let result = 0;
+			for (let i = 0; i < 10; i++) {
+				if (i % 2 == 0) {
+					continue;
+				}
+				result = result + i;
+				if (result > 10) {
+					break;
+				}
+			}
+			result`,
+			12, // 1+3+5+3 (breaks when result becomes 12)
+		},
+	}
+
+	for i, tt := range tests {
+		evaluated := testEval(tt.input)
+		testIntegerObject(t, evaluated, tt.expected)
+		if evaluated == nil {
+			t.Errorf("test[%d] - evaluated is nil", i)
+		}
+	}
+}
+
+func TestForStatementsWithFloats(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected float64
+	}{
+		{
+			`let sum = 0.0;
+			for (let i = 1.0; i <= 3.0; i = i + 1.0) {
+				sum = sum + i;
+			}
+			sum`,
+			6.0,
+		},
+		{
+			`let result = 1.0;
+			for (let i = 0.5; i <= 2.0; i = i + 0.5) {
+				result = result * i;
+			}
+			result`,
+			1.875, // 1.0 * 0.5 * 1.0 * 1.5 * 2.0
+		},
+	}
+
+	for i, tt := range tests {
+		evaluated := testEval(tt.input)
+		testFloatObject(t, evaluated, tt.expected)
+		if evaluated == nil {
+			t.Errorf("test[%d] - evaluated is nil", i)
+		}
+	}
+}
+
+func TestNestedForStatements(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected int64
+	}{
+		{
+			`let sum = 0;
+			for (let i = 1; i <= 3; i++) {
+				for (let j = 1; j <= 2; j++) {
+					sum = sum + (i * j);
+				}
+			}
+			sum`,
+			18, // (1*1 + 1*2) + (2*1 + 2*2) + (3*1 + 3*2) = 3 + 6 + 9 = 18
+		},
+		{
+			`let count = 0;
+			for (let i = 0; i < 3; i++) {
+				for (let j = 0; j < 2; j++) {
+					count++;
+				}
+			}
+			count`,
+			6,
+		},
+	}
+
+	for i, tt := range tests {
+		evaluated := testEval(tt.input)
+		testIntegerObject(t, evaluated, tt.expected)
+		if evaluated == nil {
+			t.Errorf("test[%d] - evaluated is nil", i)
+		}
+	}
+}
+
 func testEval(input string) object.Object {
 	l := lexer.New(input)
 	p := parser.New(l)

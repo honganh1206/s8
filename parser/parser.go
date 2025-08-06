@@ -236,6 +236,8 @@ func (p *Parser) parseStatement() ast.Statement {
 		return p.parseReturnStatement()
 	case token.WHILE:
 		return p.parseWhileStatement()
+	case token.FOR:
+		return p.parseForStatement()
 	case token.BREAK:
 		return p.parseBreakStatement()
 	case token.CONTINUE:
@@ -460,16 +462,16 @@ func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
 }
 
 func (p *Parser) parseAssignExpression(left ast.Expression) ast.Expression {
-	expr := &ast.AssignmentExpression{
+	expr := &ast.Assignment{
 		Token: p.currentToken,
-		Left:  left,
+		Name:  left,
 	}
 
 	p.nextToken()
 	// When we are done parsing the identifier, the current precedence is the lowest,
 	// but we still need to pass in LOWEST as an argument
 	// so we can recursively parse the right-side value
-	expr.Right = p.parseExpression(LOWEST)
+	expr.Value = p.parseExpression(LOWEST)
 
 	return expr
 }
@@ -550,6 +552,39 @@ func (p *Parser) parseWhileStatement() *ast.WhileStatement {
 	p.nextToken()
 
 	expr.Condition = p.parseExpression(LOWEST)
+	if !p.expectPeek(token.RPAREN) {
+		return nil
+	}
+
+	if !p.expectPeek(token.LBRACE) {
+		return nil
+	}
+
+	expr.Body = p.parseBlockStatement()
+
+	return expr
+}
+
+func (p *Parser) parseForStatement() *ast.ForStatement {
+	expr := &ast.ForStatement{Token: p.currentToken}
+	if !p.expectPeek(token.LPAREN) {
+		return nil
+	}
+
+	p.nextToken()
+
+	// Init could be a let statement, or just an assign expression?
+	// For now keep it as a Let statement
+	expr.Init = p.parseLetStatement()
+	p.nextToken()
+
+	expr.Condition = p.parseExpression(LOWEST)
+	if !p.expectPeek(token.SEMICOLON) {
+		return nil
+	}
+	p.nextToken()
+
+	expr.Update = p.parseExpression(LOWEST)
 	if !p.expectPeek(token.RPAREN) {
 		return nil
 	}

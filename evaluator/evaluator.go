@@ -78,15 +78,15 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 
 		// Bind the value to the identifier
 		env.Set(node.Name.Value, val)
-	case *ast.AssignmentExpression:
-		val := Eval(node.Right, env)
+	case *ast.Assignment:
+		val := Eval(node.Value, env)
 		if isError(val) {
 			return val
 		}
 
-		ident, ok := node.Left.(*ast.Identifier)
+		ident, ok := node.Name.(*ast.Identifier)
 		if !ok {
-			return newError("cannot assign to %T", node.Left)
+			return newError("cannot assign to %T", node.Name)
 		}
 
 		if _, ok := env.Get(ident.Value); !ok {

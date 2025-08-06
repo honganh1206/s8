@@ -142,8 +142,38 @@ func (rs *ReturnStatement) String() string {
 
 type ForStatement struct {
 	Token token.Token
-	// We need var declaration, comparison and postfix increment as expressions?
-	// and the body will be block statement
+	// We can declare the variable before assigning a value to it,
+	// so this can be either of type LetStatement or Assign
+	Init *LetStatement
+	// Condition could be an infix expression, but better let it be flexible
+	Condition Expression
+	// Update could be postfix expression, but could also be assign expression
+	// e.g., i = i + 2
+	Update Expression
+	Body   *BlockStatement
+}
+
+func (fs *ForStatement) statementNode() {}
+
+func (fs *ForStatement) TokenLiteral() string {
+	return fs.Token.Literal
+}
+
+func (fs *ForStatement) String() string {
+	var out bytes.Buffer
+
+	out.WriteString(fs.TokenLiteral())
+	out.WriteString(" (")
+	out.WriteString(fs.Init.String())
+	out.WriteString(";")
+	out.WriteString(fs.Condition.String())
+	out.WriteString(";")
+	out.WriteString(fs.Update.String())
+	out.WriteString(";")
+	out.WriteString(") ")
+	out.WriteString(fs.Body.String())
+
+	return out.String()
 }
 
 type WhileStatement struct {
@@ -549,23 +579,25 @@ func (ie *IndexExpression) String() string {
 	return out.String()
 }
 
-type AssignmentExpression struct {
-	Token token.Token // The ASSIGN token
-	Left  Expression  // The identifier to assign to
-	Right Expression  // The value to assign
+// TODO: Does ExpressionStatement wrap this already?
+type Assignment struct {
+	Token token.Token
+	Name  Expression
+	Value Expression
 }
 
-func (ae *AssignmentExpression) expressionNode() {}
+// Assignment can be both Statement and Expression?
+func (a *Assignment) expressionNode() {}
 
-func (ae *AssignmentExpression) TokenLiteral() string { return ae.Token.Literal }
+func (a *Assignment) TokenLiteral() string { return a.Token.Literal }
 
-func (ae *AssignmentExpression) String() string {
+func (a *Assignment) String() string {
 	var out bytes.Buffer
 
 	out.WriteString("(")
-	out.WriteString(ae.Left.String())
+	out.WriteString(a.Name.String())
 	out.WriteString(" = ")
-	out.WriteString(ae.Right.String())
+	out.WriteString(a.Value.String())
 	out.WriteString(")")
 
 	return out.String()
