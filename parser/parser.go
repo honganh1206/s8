@@ -12,6 +12,7 @@ import (
 const (
 	_ int = iota // Give the following constants incrementing numbers as value
 	LOWEST
+	ASSIGN
 	EQUALS      // ==
 	CONDITIONAL // ? and :
 	LESSGREATER // > or <
@@ -43,6 +44,7 @@ var precedences = map[token.TokenType]int{
 	token.AMPERSAND: BITWISE,
 	token.RSHIFT:    BITWISE,
 	token.LSHIFT:    BITWISE,
+	token.ASSIGN:    ASSIGN,
 }
 
 type (
@@ -118,6 +120,9 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerInfix(token.LSHIFT, p.parseInfixExpression)
 	p.registerInfix(token.AMPERSAND, p.parseInfixExpression)
 	p.registerInfix(token.EXPONENT, p.parseInfixExpression)
+	// Assign binds two expressions e.g., a = b + c
+	// so it makes sense we make it an infix
+	p.registerInfix(token.ASSIGN, p.parseAssignExpression)
 
 	p.postfixParseFns = make(map[token.TokenType]postfixParseFn)
 	precedences[token.INCREMENT] = POSTFIX
@@ -229,6 +234,14 @@ func (p *Parser) parseStatement() ast.Statement {
 		return p.parseLetStatement()
 	case token.RETURN:
 		return p.parseReturnStatement()
+	case token.WHILE:
+		return p.parseWhileStatement()
+	case token.FOR:
+		return p.parseForStatement()
+	case token.BREAK:
+		return p.parseBreakStatement()
+	case token.CONTINUE:
+		return p.parseContinueStatement()
 	default:
 		return p.parseExpressionStatement()
 	}
@@ -242,7 +255,6 @@ func (p *Parser) parseLetStatement() *ast.LetStatement {
 		return nil
 	}
 
-	// Construct an *ast.Identifier node e.g., foobar
 	stmt.Name = &ast.Identifier{Token: p.currentToken, Value: p.currentToken.Literal}
 
 	if !p.expectPeek(token.ASSIGN) {
@@ -265,6 +277,26 @@ func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
 
 	p.nextToken()
 	stmt.ReturnValue = p.parseExpression(LOWEST)
+
+	if p.peekTokenIs(token.SEMICOLON) {
+		p.nextToken()
+	}
+
+	return stmt
+}
+
+func (p *Parser) parseBreakStatement() *ast.BreakStatement {
+	stmt := &ast.BreakStatement{Token: p.currentToken}
+
+	if p.peekTokenIs(token.SEMICOLON) {
+		p.nextToken()
+	}
+
+	return stmt
+}
+
+func (p *Parser) parseContinueStatement() *ast.ContinueStatement {
+	stmt := &ast.ContinueStatement{Token: p.currentToken}
 
 	if p.peekTokenIs(token.SEMICOLON) {
 		p.nextToken()
@@ -429,6 +461,21 @@ func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
 	return expr
 }
 
+func (p *Parser) parseAssignExpression(left ast.Expression) ast.Expression {
+	expr := &ast.Assignment{
+		Token: p.currentToken,
+		Name:  left,
+	}
+
+	p.nextToken()
+	// When we are done parsing the identifier, the current precedence is the lowest,
+	// but we still need to pass in LOWEST as an argument
+	// so we can recursively parse the right-side value
+	expr.Value = p.parseExpression(LOWEST)
+
+	return expr
+}
+
 // At this point we already parsed the left expression
 // We thus need to consider parsing the precedence
 func (p *Parser) parsePostfixExpression(left ast.Expression) ast.Expression {
@@ -492,6 +539,61 @@ func (p *Parser) parseIfExpression() ast.Expression {
 		expr.Alternative = p.parseBlockStatement()
 
 	}
+
+	return expr
+}
+
+func (p *Parser) parseWhileStatement() *ast.WhileStatement {
+	expr := &ast.WhileStatement{Token: p.currentToken}
+	if !p.expectPeek(token.LPAREN) {
+		return nil
+	}
+
+	p.nextToken()
+
+	expr.Condition = p.parseExpression(LOWEST)
+	if !p.expectPeek(token.RPAREN) {
+		return nil
+	}
+
+	if !p.expectPeek(token.LBRACE) {
+		return nil
+	}
+
+	expr.Body = p.parseBlockStatement()
+
+	return expr
+}
+
+func (p *Parser) parseForStatement() *ast.ForStatement {
+	expr := &ast.ForStatement{Token: p.currentToken}
+	if !p.expectPeek(token.LPAREN) {
+		return nil
+	}
+
+	p.nextToken()
+
+	// Init could be a let statement, or just an assign expression?
+	// For now keep it as a Let statement
+	expr.Init = p.parseLetStatement()
+	p.nextToken()
+
+	expr.Condition = p.parseExpression(LOWEST)
+	if !p.expectPeek(token.SEMICOLON) {
+		return nil
+	}
+	p.nextToken()
+
+	expr.Update = p.parseExpression(LOWEST)
+	if !p.expectPeek(token.RPAREN) {
+		return nil
+	}
+
+	if !p.expectPeek(token.LBRACE) {
+		return nil
+	}
+
+	expr.Body = p.parseBlockStatement()
 
 	return expr
 }

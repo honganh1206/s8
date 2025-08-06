@@ -66,6 +66,10 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 			return val
 		}
 		return &object.ReturnValue{Value: val}
+	case *ast.BreakStatement:
+		return &object.Break{}
+	case *ast.ContinueStatement:
+		return &object.Continue{}
 	case *ast.LetStatement:
 		val := Eval(node.Value, env)
 		if isError(val) {
@@ -74,6 +78,25 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 
 		// Bind the value to the identifier
 		env.Set(node.Name.Value, val)
+	case *ast.Assignment:
+		val := Eval(node.Value, env)
+		if isError(val) {
+			return val
+		}
+
+		ident, ok := node.Name.(*ast.Identifier)
+		if !ok {
+			return newError("cannot assign to %T", node.Name)
+		}
+
+		if _, ok := env.Get(ident.Value); !ok {
+			return newError("identifier not found: " + ident.Value)
+		}
+
+		env.Set(ident.Value, val)
+		return val
+	case *ast.WhileStatement:
+		return evalWhileStatement(node, env)
 	case *ast.Identifier:
 		return evalIdentifier(node, env)
 	case *ast.FunctionLiteral:
@@ -149,10 +172,21 @@ func evalProgram(p *ast.Program, env *object.Environment) object.Object {
 }
 
 // This function will bubble up to the upper evalBlockStatement (in case of nested block statements)
-// Or to evalProgram, then the ReturnValue will get wrapped
-/*
-
- */
+// or to evalProgram, then the ReturnValue will get unwrapped
+// evalProgram
+//
+//	↑
+//	unwrapped to just 10 at evalProgram()
+//	|
+//	└── evalBlockStatement (outer if)
+//	    ↑
+//	    | bubbles up unchanged
+//	    ↑
+//	└── evalBlockStatement (inner if)
+//	    ↑
+//	    | bubbles up unchanged
+//	    ↑
+//	└── ReturnValue{Value: 10}
 func evalBlockStatement(bs *ast.BlockStatement, env *object.Environment) object.Object {
 	var result object.Object
 
@@ -162,7 +196,7 @@ func evalBlockStatement(bs *ast.BlockStatement, env *object.Environment) object.
 		// Plus result.Type() would cause a panic if result is nil
 		if result != nil {
 			rt := result.Type()
-			if rt == object.RETURN_VALUE_OBJ || rt == object.ERROR_OBJ {
+			if rt == object.RETURN_VALUE_OBJ || rt == object.ERROR_OBJ || rt == object.CONTINUE_OBJ {
 				// Still wrap the value inside *object.ReturnValue or *object.Error
 				return result
 			}
@@ -255,9 +289,10 @@ func evalIncreDecrePrefixOperatorExpression(node *ast.PrefixExpression, right ob
 	}
 
 	var newVal int64
-	if node.Operator == token.INCREMENT {
+	switch node.Operator {
+	case token.INCREMENT:
 		newVal = val.Value + 1
-	} else if node.Operator == token.DECREMENT {
+	case token.DECREMENT:
 		newVal = val.Value - 1
 	}
 
@@ -280,9 +315,10 @@ func evalIncreDecrePostfixOperatorExpression(node *ast.PostfixExpression, left o
 	}
 
 	var newVal int64
-	if node.Operator == token.INCREMENT {
+	switch node.Operator {
+	case token.INCREMENT:
 		newVal = val.Value + 1
-	} else if node.Operator == token.DECREMENT {
+	case token.DECREMENT:
 		newVal = val.Value - 1
 	}
 
@@ -421,6 +457,39 @@ func evalIfExpression(ie *ast.IfExpression, env *object.Environment) object.Obje
 	}
 }
 
+func evalWhileStatement(we *ast.WhileStatement, env *object.Environment) object.Object {
+	var body object.Object
+	for {
+		condition := Eval(we.Condition, env)
+		if isError(condition) {
+			return condition
+		}
+
+		if !isTruthy(condition) {
+			break
+		}
+
+		body = Eval(we.Body, env)
+		if isError(body) {
+			return body
+		}
+
+		if isBreak(body) {
+			break
+		}
+
+		if isContinue(body) {
+			continue
+		}
+
+		if isReturn(body) {
+			return body
+		}
+
+	}
+	return body
+}
+
 func isTruthy(obj object.Object) bool {
 	switch obj {
 	case NULL:
@@ -442,7 +511,27 @@ func isError(obj object.Object) bool {
 	if obj != nil {
 		return obj.Type() == object.ERROR_OBJ
 	}
+	return false
+}
 
+func isBreak(obj object.Object) bool {
+	if obj != nil {
+		return obj.Type() == object.BREAK_OBJ
+	}
+	return false
+}
+
+func isContinue(obj object.Object) bool {
+	if obj != nil {
+		return obj.Type() == object.CONTINUE_OBJ
+	}
+	return false
+}
+
+func isReturn(obj object.Object) bool {
+	if obj != nil {
+		return obj.Type() == object.RETURN_VALUE_OBJ
+	}
 	return false
 }
 

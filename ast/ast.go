@@ -140,6 +140,102 @@ func (rs *ReturnStatement) String() string {
 	return out.String()
 }
 
+type ForStatement struct {
+	Token token.Token
+	// We can declare the variable before assigning a value to it,
+	// so this can be either of type LetStatement or Assign
+	Init *LetStatement
+	// Condition could be an infix expression, but better let it be flexible
+	Condition Expression
+	// Update could be postfix expression, but could also be assign expression
+	// e.g., i = i + 2
+	Update Expression
+	Body   *BlockStatement
+}
+
+func (fs *ForStatement) statementNode() {}
+
+func (fs *ForStatement) TokenLiteral() string {
+	return fs.Token.Literal
+}
+
+func (fs *ForStatement) String() string {
+	var out bytes.Buffer
+
+	out.WriteString(fs.TokenLiteral())
+	out.WriteString(" (")
+	out.WriteString(fs.Init.String())
+	out.WriteString(";")
+	out.WriteString(fs.Condition.String())
+	out.WriteString(";")
+	out.WriteString(fs.Update.String())
+	out.WriteString(";")
+	out.WriteString(") ")
+	out.WriteString(fs.Body.String())
+
+	return out.String()
+}
+
+type WhileStatement struct {
+	Token     token.Token
+	Condition Expression
+	Body      *BlockStatement
+}
+
+func (ws *WhileStatement) statementNode() {}
+
+func (ws *WhileStatement) TokenLiteral() string {
+	return ws.Token.Literal
+}
+
+func (ws *WhileStatement) String() string {
+	var out bytes.Buffer
+
+	out.WriteString(ws.TokenLiteral())
+	out.WriteString(" (")
+	out.WriteString(ws.Condition.String())
+	out.WriteString(") ")
+	out.WriteString(ws.Body.String())
+
+	return out.String()
+}
+
+type BreakStatement struct {
+	Token token.Token
+}
+
+func (bs *BreakStatement) statementNode() {}
+
+func (bs *BreakStatement) TokenLiteral() string {
+	return bs.Token.Literal
+}
+
+func (bs *BreakStatement) String() string {
+	var out bytes.Buffer
+
+	out.WriteString(bs.TokenLiteral())
+
+	return out.String()
+}
+
+type ContinueStatement struct {
+	Token token.Token
+}
+
+func (cs *ContinueStatement) statementNode() {}
+
+func (cs *ContinueStatement) TokenLiteral() string {
+	return cs.Token.Literal
+}
+
+func (bs *ContinueStatement) String() string {
+	var out bytes.Buffer
+
+	out.WriteString(bs.TokenLiteral())
+
+	return out.String()
+}
+
 type ExpressionStatement struct {
 	Token      token.Token // 1st token of the expression
 	Expression Expression
@@ -479,6 +575,30 @@ func (ie *IndexExpression) String() string {
 	out.WriteString("[")
 	out.WriteString(ie.Index.String())
 	out.WriteString("])")
+
+	return out.String()
+}
+
+// TODO: Does ExpressionStatement wrap this already?
+type Assignment struct {
+	Token token.Token
+	Name  Expression
+	Value Expression
+}
+
+// Assignment can be both Statement and Expression?
+func (a *Assignment) expressionNode() {}
+
+func (a *Assignment) TokenLiteral() string { return a.Token.Literal }
+
+func (a *Assignment) String() string {
+	var out bytes.Buffer
+
+	out.WriteString("(")
+	out.WriteString(a.Name.String())
+	out.WriteString(" = ")
+	out.WriteString(a.Value.String())
+	out.WriteString(")")
 
 	return out.String()
 }

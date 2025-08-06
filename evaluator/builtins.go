@@ -65,7 +65,7 @@ var builtins = map[string]*object.Builtin{
 			arr := args[0].(*object.Array)
 			length := len(arr.Elements)
 			if length > 0 {
-				newElems := make([]object.Object, length-1, length-1)
+				newElems := make([]object.Object, length-1)
 				// Exclude the 1st elem
 				copy(newElems, arr.Elements[1:length])
 				return &object.Array{Elements: newElems}
@@ -85,7 +85,7 @@ var builtins = map[string]*object.Builtin{
 			arr := args[0].(*object.Array)
 			length := len(arr.Elements)
 
-			newElems := make([]object.Object, length+1, length+1)
+			newElems := make([]object.Object, length+1)
 			copy(newElems, arr.Elements)
 			newElems[length] = args[1]
 			return &object.Array{Elements: newElems}

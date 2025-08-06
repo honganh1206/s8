@@ -1073,6 +1073,284 @@ func TestMacroLiteralParsing(t *testing.T) {
 	testInfixExpression(t, bodyStmt.Expression, "x", "y", "+")
 }
 
+func TestWhileStatementParsing(t *testing.T) {
+	tests := []struct {
+		input                  string
+		expectedIdentifier     string
+		expectedOperator       string
+		expectedRight          any
+		expectedBodyStmtsCount int
+	}{
+		{
+			"while (x < 10) { x; }",
+			"x",
+			"<",
+			10,
+			1,
+		},
+		{
+			"while (counter > 0) { counter; return 5; }",
+			"counter",
+			">",
+			0,
+			2,
+		},
+		{
+			"while (true) { 42; }",
+			"",
+			"",
+			true,
+			1,
+		},
+		{
+			"while (i > 0) { i; }",
+			"i",
+			">",
+			0,
+			1,
+		},
+		{
+			"while (i < 10) { i; if (i == 2) { break; } }",
+			"i",
+			"<",
+			10,
+			2,
+		},
+		{
+			"while (i < 10) { i; if (i == 2) { continue; } }",
+			"i",
+			"<",
+			10,
+			2,
+		},
+	}
+
+	for _, tt := range tests {
+		l := lexer.New(tt.input)
+		p := New(l)
+		program := p.ParseProgram()
+		checkParserErrors(t, p)
+
+		if len(program.Statements) != 1 {
+			t.Fatalf("program.Statements does not contain 1 statement. got: %d",
+				len(program.Statements))
+		}
+
+		stmt, ok := program.Statements[0].(*ast.WhileStatement)
+		if !ok {
+			t.Fatalf("program.Statements[0] is not ast.WhileStatement. got: %T",
+				program.Statements[0])
+		}
+
+		if stmt.TokenLiteral() != "while" {
+			t.Errorf("stmt.TokenLiteral() not 'while'. got: %q",
+				stmt.TokenLiteral())
+		}
+
+		// Test condition based on expected values
+		if tt.expectedIdentifier != "" && tt.expectedOperator != "" {
+			if !testInfixExpression(t, stmt.Condition, tt.expectedIdentifier, tt.expectedRight, tt.expectedOperator) {
+				return
+			}
+		} else if tt.expectedRight == true {
+			// Test for boolean literal condition
+			if !testBooleanLiteral(t, stmt.Condition, true) {
+				return
+			}
+		}
+
+		if len(stmt.Body.Statements) != tt.expectedBodyStmtsCount {
+			t.Errorf("stmt.Body.Statements does not contain %d statements. got: %d",
+				tt.expectedBodyStmtsCount, len(stmt.Body.Statements))
+		}
+	}
+}
+
+func TestForStatementParsing(t *testing.T) {
+	tests := []struct {
+		input                   string
+		expectedIdentifier      string
+		expectedInfixOperator   string
+		expectedRight           any
+		expectedPostfixOperator string
+		expectedBodyStmtsCount  int
+	}{
+		{
+			"for (let i = 0; i < 10; i++) { x + i; }",
+			"i",
+			"<",
+			10,
+			"++",
+			1,
+		},
+		// {
+		// 	"for (i = 5; i > 0; i--) { return i; }",
+		// 	"i",
+		// 	">",
+		// 	0,
+		// 	"--",
+		// 	1,
+		// },
+		// {
+		// 	"for (let x = 1; x <= 100; x = x * 2) { print(x); }",
+		// 	"x",
+		// 	"<=",
+		// 	"=",
+		// 	1,
+		// },
+	}
+
+	for _, tt := range tests {
+		l := lexer.New(tt.input)
+		p := New(l)
+		program := p.ParseProgram()
+		checkParserErrors(t, p)
+
+		if len(program.Statements) != 1 {
+			t.Fatalf("program.Statements does not contain 1 statements. got=%d",
+				len(program.Statements))
+		}
+
+		stmt, ok := program.Statements[0].(*ast.ForStatement)
+		if !ok {
+			t.Fatalf("program.Statements[0] is not ast.ForStatement. got=%T",
+				program.Statements[0])
+		}
+
+		if stmt.TokenLiteral() != "for" {
+			t.Errorf("stmt.TokenLiteral() not 'for'. got: %q",
+				stmt.TokenLiteral())
+		}
+
+		testLetStatement(t, stmt.Init, tt.expectedIdentifier)
+
+		if !testInfixExpression(t, stmt.Condition, tt.expectedIdentifier, tt.expectedRight, tt.expectedInfixOperator) {
+			return
+		}
+
+		if len(stmt.Body.Statements) != tt.expectedBodyStmtsCount {
+			t.Errorf("stmt.Body.Statements does not contain %d statements. got: %d",
+				tt.expectedBodyStmtsCount, len(stmt.Body.Statements))
+		}
+	}
+}
+
+// func TestForStatementParsingWithOptionalParts(t *testing.T) {
+// 	tests := []struct {
+// 		input        string
+// 		hasInit      bool
+// 		hasCondition bool
+// 		hasUpdate    bool
+// 	}{
+// 		{"for (;;) { x; }", false, false, false},
+// 		{"for (let i = 0;;) { x; }", true, false, false},
+// 		{"for (;i < 10;) { x; }", false, true, false},
+// 		{"for (;;i++) { x; }", false, false, true},
+// 		{"for (let i = 0; i < 10;) { x; }", true, true, false},
+// 		{"for (let i = 0;; i++) { x; }", true, false, true},
+// 		{"for (; i < 10; i++) { x; }", false, true, true},
+// 	}
+
+// 	for i, tt := range tests {
+// 		l := lexer.New(tt.input)
+// 		p := New(l)
+// 		program := p.ParseProgram()
+// 		checkParserErrors(t, p)
+
+// 		if len(program.Statements) != 1 {
+// 			t.Fatalf("program.Statements does not contain 1 statements. got=%d",
+// 				len(program.Statements))
+// 		}
+
+// 		stmt, ok := program.Statements[0].(*ast.ForStatement)
+// 		if !ok {
+// 			t.Fatalf("program.Statements[0] is not ast.ForStatement. got=%T",
+// 				program.Statements[0])
+// 		}
+
+// 		if (stmt.Init != nil) != tt.hasInit {
+// 			t.Errorf("tests[%d] - init presence wrong. expected=%t, got=%t",
+// 				i, tt.hasInit, stmt.Init != nil)
+// 		}
+
+// 		if (stmt.Condition != nil) != tt.hasCondition {
+// 			t.Errorf("tests[%d] - condition presence wrong. expected=%t, got=%t",
+// 				i, tt.hasCondition, stmt.Condition != nil)
+// 		}
+
+// 		if (stmt.Update != nil) != tt.hasUpdate {
+// 			t.Errorf("tests[%d] - update presence wrong. expected=%t, got=%t",
+// 				i, tt.hasUpdate, stmt.Update != nil)
+// 		}
+// 	}
+// }
+
+func TestAssignmentExpressionParsing(t *testing.T) {
+	tests := []struct {
+		input      string
+		leftValue  string
+		rightValue any
+	}{
+		// {"x = 5;", "x", 5},
+		// {"y = 10;", "y", 10},
+		{"greet = \"hello\";", "greet", "hello"},
+		// {"flag = true;", "flag", true},
+		// {"counter = 0;", "counter", 0},
+	}
+
+	for _, tt := range tests {
+		l := lexer.New(tt.input)
+		p := New(l)
+		program := p.ParseProgram()
+		checkParserErrors(t, p)
+
+		if len(program.Statements) != 1 {
+			t.Fatalf("program.Statements does not contain 1 statement. got: %d", len(program.Statements))
+		}
+
+		stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+		if !ok {
+			t.Fatalf("program.Statements[0] is not ast.ExpressionStatement. got: %T", program.Statements[0])
+		}
+
+		testAssignmentExpression(t, stmt.Expression, tt.leftValue, tt.rightValue)
+	}
+}
+
+func TestAssignmentExpressionPrecedence(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		// Assignment has lower precedence than arithmetic
+		{"x = 5 + 3;", "(x = (5 + 3))"},
+		{"y = a * b;", "(y = (a * b))"},
+		{"z = 10 - 5;", "(z = (10 - 5))"},
+
+		// Assignment has lower precedence than comparison
+		{"flag = x > 5;", "(flag = (x > 5))"},
+		{"result = a == b;", "(result = (a == b))"},
+
+		// Multiple assignments (right associative)
+		{"x = y = 5;", "(x = (y = 5))"},
+
+		// Assignment with function calls
+		{"result = func(x);", "(result = func(x))"},
+	}
+
+	for _, tt := range tests {
+		l := lexer.New(tt.input)
+		p := New(l)
+		program := p.ParseProgram()
+		checkParserErrors(t, p)
+
+		actual := program.String()
+		if actual != tt.expected {
+			t.Errorf("expected=%q, got=%q", tt.expected, actual)
+		}
+	}
+}
+
 /*
 	TEST HELPERS
 */
@@ -1086,13 +1364,15 @@ func testLiteralExpression(t *testing.T, expr ast.Expression, expected any) bool
 	case float64:
 		return testFloatLiteral(t, expr, v)
 	case string:
+		if strLit, ok := expr.(*ast.StringLiteral); ok {
+			return testStringLiteral(t, strLit, v)
+		}
 		return testIdentifier(t, expr, v)
 	case bool:
 		return testBooleanLiteral(t, expr, v)
 	}
 
 	t.Errorf("type of expr not handled. got: %T", expr)
-
 	return false
 }
 
@@ -1197,6 +1477,38 @@ func testBooleanLiteral(t *testing.T, expr ast.Expression, value bool) bool {
 
 	if bo.TokenLiteral() != fmt.Sprintf("%t", value) {
 		t.Errorf("ident.TokenLiteral() not %t. got: %s", value, bo.TokenLiteral())
+		return false
+	}
+
+	return true
+}
+
+func testStringLiteral(t *testing.T, expr *ast.StringLiteral, value string) bool {
+	if expr.Value != value {
+		t.Errorf("expr.Value not %s. got: %s", value, expr.Value)
+		return false
+	}
+
+	if expr.TokenLiteral() != value {
+		t.Errorf("expr.TokenLiteral() not %s. got: %s", value, expr.TokenLiteral())
+		return false
+	}
+
+	return true
+}
+
+func testAssignmentExpression(t *testing.T, expr ast.Expression, left string, right any) bool {
+	assignExpr, ok := expr.(*ast.Assignment)
+	if !ok {
+		t.Errorf("expr not ast.AssignmentExpression. got: %T", expr)
+		return false
+	}
+
+	if !testIdentifier(t, assignExpr.Name, left) {
+		return false
+	}
+
+	if !testLiteralExpression(t, assignExpr.Value, right) {
 		return false
 	}
 

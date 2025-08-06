@@ -237,6 +237,87 @@ func TestLetStatements(t *testing.T) {
 	}
 }
 
+func TestAssignmentExpressions(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected any
+	}{
+		// Basic assignment
+		{"let x = 5; x = 10; x;", 10},
+		{"let y = 3; y = y + 2; y;", 5},
+
+		// Assignment with different types
+		{"let a = 5; a = 3.14; a;", 3.14},
+		{"let b = true; b = false; b;", false},
+		{"let s = \"hello\"; s = \"world\"; s;", "world"},
+
+		// Assignment returns the assigned value
+		{"let x = 5; x = 10; x", 10},
+		{"let y = 1; let z = (y = 42); z", 42},
+
+		// Assignment in expressions
+		{"let x = 5; (x = 10) + 5;", 15},
+		{"let a = 1; let b = 2; a = b = 3; a;", 3},
+		{"let a = 1; let b = 2; a = b = 3; b;", 3},
+
+		// Assignment with complex expressions
+		{"let x = 5; let y = 3; x = y * 2 + 1; x;", 7},
+		{"let arr = [1, 2, 3]; let i = 0; i = arr[1]; i;", 2},
+	}
+
+	for _, tt := range tests {
+		evaluated := testEval(tt.input)
+		switch expected := tt.expected.(type) {
+		case int:
+			testIntegerObject(t, evaluated, int64(expected))
+		case float64:
+			testFloatObject(t, evaluated, expected)
+		case bool:
+			testBooleanObject(t, evaluated, expected)
+		case string:
+			strObj, ok := evaluated.(*object.String)
+			if !ok {
+				t.Errorf("object is not String. got=%T (%+v)", evaluated, evaluated)
+				continue
+			}
+			if strObj.Value != expected {
+				t.Errorf("String has wrong value. got=%q", strObj.Value)
+			}
+		}
+	}
+}
+
+func TestAssignmentExpressionErrors(t *testing.T) {
+	tests := []struct {
+		input           string
+		expectedMessage string
+	}{
+		{
+			"x = 5;",
+			"identifier not found: x",
+		},
+		{
+			"let x = 5; 5 = 10;",
+			"cannot assign to *ast.IntegerLiteral",
+		},
+	}
+
+	for _, tt := range tests {
+		evaluated := testEval(tt.input)
+
+		errObj, ok := evaluated.(*object.Error)
+		if !ok {
+			t.Errorf("no error object returned. got=%T(%+v)", evaluated, evaluated)
+			continue
+		}
+
+		if errObj.Message != tt.expectedMessage {
+			t.Errorf("wrong error message. expected=%q, got=%q",
+				tt.expectedMessage, errObj.Message)
+		}
+	}
+}
+
 func TestReturnStatements(t *testing.T) {
 	tests := []struct {
 		input    string
@@ -707,6 +788,235 @@ func TestHashIndexExpression(t *testing.T) {
 /*
 HELPER FUNCTIONS
 */
+
+func TestWhileStatements(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected any
+	}{
+		{"let i = 0; while (i < 3) { i++; } i;", 3},
+		// Simple while loop with counter
+		{"let i = 0; while (i < 3) { i = i + 1; } i;", 3},
+		// While loop with multiplication
+		{"let x = 1; while (x < 10) { x = x * 2; } x;", 16},
+		// While loop that doesn't execute
+		{"let y = 5; while (y > 10) { y = y + 1; } y;", 5},
+		// While loop with boolean condition
+		{"let flag = true; let count = 0; while (flag) { count = count + 1; if (count > 2) { flag = false; } } count;", 3},
+		// While loop with return statement
+		{"let i = 0; while (i < 5) { i = i + 1; if (i == 3) { return i; } }; i", 3},
+		// While loop with break statement
+		{"let i = 0; while (i < 10) { i = i + 1; if (i == 3) { break; } } i;", 3},
+		// While loop with continue statement
+		{"let i = 0; let sum = 0; while (i < 5) { i = i + 1; if (i == 3) { continue; } sum = sum + i; } sum;", 12},
+		// While loop with nested break
+		{"let i = 0; let found = false; while (i < 10) { i = i + 1; if (i > 5) { found = true; break; } } found;", true},
+		// While loop with multiple continues - skip odd numbers (1, 3, 5, 7, 9)
+		// TODO: Implement AND and OR infix expr
+		// {"let i = 0; let count = 0; while (i < 10) { i = i + 1; if (i == 1 || i == 3 || i == 5 || i == 7 || i == 9) { continue; } count = count + 1; } count;", 5},
+		// While loop with break in nested if
+		{"let i = 0; while (true) { i = i + 1; if (i > 5) { if (i == 7) { break; } } } i;", 7},
+	}
+
+	for i, tt := range tests {
+		evaluated := testEval(tt.input)
+		switch expected := tt.expected.(type) {
+		case int:
+			if !testIntegerObject(t, evaluated, int64(expected)) {
+				t.Errorf("Test case %d failed: input=%q, expected=%d", i, tt.input, expected)
+			}
+		case int64:
+			if !testIntegerObject(t, evaluated, expected) {
+				t.Errorf("Test case %d failed: input=%q, expected=%d", i, tt.input, expected)
+			}
+		case bool:
+			if !testBooleanObject(t, evaluated, expected) {
+				t.Errorf("Test case %d failed: input=%q, expected=%t", i, tt.input, expected)
+			}
+		}
+	}
+}
+
+func TestForStatements(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected int64
+	}{
+		{
+			`let sum = 0;
+			for (let i = 1; i <= 5; i++) {
+				sum = sum + i;
+			}
+			sum`,
+			15,
+		},
+		{
+			`let result = 1;
+			for (let i = 1; i <= 4; i++) {
+				result = result * i;
+			}
+			result`,
+			24,
+		},
+		{
+			`let count = 0;
+			for (let i = 0; i < 10; i++) {
+				count++;
+			}
+			count`,
+			10,
+		},
+		{
+			`let x = 0;
+			for (; x < 3; x++) {
+				x = x + 1;
+			}
+			x`,
+			3,
+		},
+		{
+			`let i = 0;
+			let sum = 0;
+			for (;;) {
+				if (i >= 3) {
+					break;
+				}
+				sum = sum + i;
+				i++;
+			}
+			sum`,
+			3,
+		},
+	}
+
+	for i, tt := range tests {
+		evaluated := testEval(tt.input)
+		testIntegerObject(t, evaluated, tt.expected)
+		if evaluated == nil {
+			t.Errorf("test[%d] - evaluated is nil", i)
+		}
+	}
+}
+
+func TestForStatementsWithBreakContinue(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected int64
+	}{
+		{
+			`let sum = 0;
+			for (let i = 0; i < 10; i++) {
+				if (i == 5) {
+					break;
+				}
+				sum = sum + i;
+			}
+			sum`,
+			10, // 0+1+2+3+4
+		},
+		{
+			`let sum = 0;
+			for (let i = 0; i < 5; i++) {
+				if (i == 2) {
+					continue;
+				}
+				sum = sum + i;
+			}
+			sum`,
+			8, // 0+1+3+4
+		},
+		{
+			`let result = 0;
+			for (let i = 0; i < 10; i++) {
+				if (i % 2 == 0) {
+					continue;
+				}
+				result = result + i;
+				if (result > 10) {
+					break;
+				}
+			}
+			result`,
+			12, // 1+3+5+3 (breaks when result becomes 12)
+		},
+	}
+
+	for i, tt := range tests {
+		evaluated := testEval(tt.input)
+		testIntegerObject(t, evaluated, tt.expected)
+		if evaluated == nil {
+			t.Errorf("test[%d] - evaluated is nil", i)
+		}
+	}
+}
+
+func TestForStatementsWithFloats(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected float64
+	}{
+		{
+			`let sum = 0.0;
+			for (let i = 1.0; i <= 3.0; i = i + 1.0) {
+				sum = sum + i;
+			}
+			sum`,
+			6.0,
+		},
+		{
+			`let result = 1.0;
+			for (let i = 0.5; i <= 2.0; i = i + 0.5) {
+				result = result * i;
+			}
+			result`,
+			1.875, // 1.0 * 0.5 * 1.0 * 1.5 * 2.0
+		},
+	}
+
+	for i, tt := range tests {
+		evaluated := testEval(tt.input)
+		testFloatObject(t, evaluated, tt.expected)
+		if evaluated == nil {
+			t.Errorf("test[%d] - evaluated is nil", i)
+		}
+	}
+}
+
+func TestNestedForStatements(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected int64
+	}{
+		{
+			`let sum = 0;
+			for (let i = 1; i <= 3; i++) {
+				for (let j = 1; j <= 2; j++) {
+					sum = sum + (i * j);
+				}
+			}
+			sum`,
+			18, // (1*1 + 1*2) + (2*1 + 2*2) + (3*1 + 3*2) = 3 + 6 + 9 = 18
+		},
+		{
+			`let count = 0;
+			for (let i = 0; i < 3; i++) {
+				for (let j = 0; j < 2; j++) {
+					count++;
+				}
+			}
+			count`,
+			6,
+		},
+	}
+
+	for i, tt := range tests {
+		evaluated := testEval(tt.input)
+		testIntegerObject(t, evaluated, tt.expected)
+		if evaluated == nil {
+			t.Errorf("test[%d] - evaluated is nil", i)
+		}
+	}
+}
 
 func testEval(input string) object.Object {
 	l := lexer.New(input)
