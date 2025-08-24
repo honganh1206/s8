@@ -97,6 +97,8 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		return val
 	case *ast.WhileStatement:
 		return evalWhileStatement(node, env)
+	case *ast.ForStatement:
+		return evalForStatement(node, env)
 	case *ast.Identifier:
 		return evalIdentifier(node, env)
 	case *ast.FunctionLiteral:
@@ -457,10 +459,10 @@ func evalIfExpression(ie *ast.IfExpression, env *object.Environment) object.Obje
 	}
 }
 
-func evalWhileStatement(we *ast.WhileStatement, env *object.Environment) object.Object {
+func evalWhileStatement(ws *ast.WhileStatement, env *object.Environment) object.Object {
 	var body object.Object
 	for {
-		condition := Eval(we.Condition, env)
+		condition := Eval(ws.Condition, env)
 		if isError(condition) {
 			return condition
 		}
@@ -469,7 +471,7 @@ func evalWhileStatement(we *ast.WhileStatement, env *object.Environment) object.
 			break
 		}
 
-		body = Eval(we.Body, env)
+		body = Eval(ws.Body, env)
 		if isError(body) {
 			return body
 		}
@@ -486,6 +488,51 @@ func evalWhileStatement(we *ast.WhileStatement, env *object.Environment) object.
 			return body
 		}
 
+	}
+	return body
+}
+
+func evalForStatement(fs *ast.ForStatement, env *object.Environment) object.Object {
+	var body object.Object
+	init := Eval(fs.Init, env)
+	if isError(init) {
+		return init
+	}
+
+	for {
+		condition := Eval(fs.Condition, env)
+		if isError(condition) {
+			return condition
+		}
+		if !isTruthy(condition) {
+			break
+		}
+
+		body = Eval(fs.Body, env)
+		if isError(body) {
+			return body
+		}
+
+		if isBreak(body) {
+			break
+		}
+
+		if isContinue(body) {
+			update := Eval(fs.Update, env)
+			if isError(update) {
+				return update
+			}
+			continue
+		}
+
+		if isReturn(body) {
+			return body
+		}
+
+		update := Eval(fs.Update, env)
+		if isError(update) {
+			return update
+		}
 	}
 	return body
 }

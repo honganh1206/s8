@@ -573,8 +573,7 @@ func (p *Parser) parseForStatement() *ast.ForStatement {
 
 	p.nextToken()
 
-	// Init could be a let statement, or just an assign expression?
-	// For now keep it as a Let statement
+	// TODO: Init could be a let statement or an assign expression
 	expr.Init = p.parseLetStatement()
 	p.nextToken()
 
