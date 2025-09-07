@@ -8,14 +8,15 @@ import (
 )
 
 type Compiler struct {
-	instructions code.Instructions
 	// The internal instruction slice
-	constants []object.Object
+	instructions code.Instructions
 	// The constant pool
-	lastInstruction EmittedInstruction
+	constants []object.Object
 	// The one we have just emitted
-	previousInstruction EmittedInstruction
+	lastInstruction EmittedInstruction
 	// The one before the recently emitted instruction
+	previousInstruction EmittedInstruction
+	symbolTable         *SymbolTable
 }
 
 // Compiled bytecode
@@ -37,7 +38,21 @@ func New() *Compiler {
 		constants:           []object.Object{},
 		lastInstruction:     EmittedInstruction{},
 		previousInstruction: EmittedInstruction{},
+		symbolTable:         NewSymbolTable(),
 	}
+}
+
+func NewWithState(s *SymbolTable, constants []object.Object) *Compiler {
+	// We create duplications here
+	// by creating a new compiler instance
+	// then overwrite the symbol table and constants.
+	// Not a problem for Go's GC though.
+	compiler := New()
+	// Preserve the symbol table and constant pool
+	// in each iteration in repl.go
+	compiler.symbolTable = s
+	compiler.constants = constants
+	return compiler
 }
 
 func (c *Compiler) Compile(node ast.Node) error {
@@ -213,6 +228,21 @@ func (c *Compiler) Compile(node ast.Node) error {
 				return err
 			}
 		}
+	case *ast.LetStatement:
+		err := c.Compile(node.Value)
+		if err != nil {
+			return err
+		}
+		symbol := c.symbolTable.Define(node.Name.Value)
+		c.emit(code.OpSetGlobal, symbol.Index)
+	case *ast.Identifier:
+		symbol, ok := c.symbolTable.Resolve(node.Value)
+		if !ok {
+			// A compile-time error!
+			// With our evaluator we cannot throw an error before we pass bytecode to the VM
+			return fmt.Errorf("undefined variable %s", node.Value)
+		}
+		c.emit(code.OpGetGlobal, symbol.Index)
 	}
 
 	return nil

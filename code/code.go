@@ -57,8 +57,9 @@ const (
 	// OpJumpNotTruthy must have an offset
 	// pointing to instructions right after BlockStatement of Consequence.
 	OpJump
-
 	OpNull
+	OpGetGlobal
+	OpSetGlobal
 )
 
 // How an instruction looks like
@@ -103,6 +104,8 @@ var definitions = map[Opcode]*Definition{
 	OpJump:          {"OpJump", []int{2}},
 	OpJumpNotTruthy: {"OpJumpNotTruthy", []int{2}},
 	OpNull:          {"OpNull", []int{}},
+	OpGetGlobal:     {"OpGetGlobal", []int{2}},
+	OpSetGlobal:     {"OpSetGlobal", []int{2}},
 }
 
 func Lookup(op byte) (*Definition, error) {

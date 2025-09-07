@@ -9,6 +9,11 @@ import (
 
 const StackSize = 2048
 
+// Since each operand is 16 bit-wide,
+// we have an upper limit on the number of global bindings
+// our VM can support
+const GlobalSize = 65536
+
 var True = &object.Boolean{Value: true}
 var False = &object.Boolean{Value: false}
 var Null = &object.Null{}
@@ -19,7 +24,8 @@ type VM struct {
 	instructions code.Instructions
 	stack        []object.Object
 	// stackpointer points to the next free slot in the stack. top of stack is stack[sp-1]
-	sp int
+	sp      int
+	globals []object.Object
 }
 
 func New(bytecode *compiler.Bytecode) *VM {
@@ -28,7 +34,14 @@ func New(bytecode *compiler.Bytecode) *VM {
 		constants:    bytecode.Constants,
 		stack:        make([]object.Object, StackSize),
 		sp:           0,
+		globals:      make([]object.Object, GlobalSize),
 	}
+}
+
+func NewWithGlobalStore(bytecode *compiler.Bytecode, s []object.Object) *VM {
+	vm := New(bytecode)
+	vm.globals = s
+	return vm
 }
 
 // Get the topmost element in the VM's stack right before we pop it off
@@ -106,6 +119,22 @@ func (vm *VM) Run() error {
 			}
 		case code.OpNull:
 			err := vm.push(Null)
+			if err != nil {
+				return err
+			}
+		case code.OpSetGlobal:
+			// Again, move the pointer to the operand after the opcode
+			globalIndex := code.ReadUint16(vm.instructions[ip+1:])
+
+			// Increment two bytes for the next instruction
+			ip += 2
+
+			vm.globals[globalIndex] = vm.pop()
+		case code.OpGetGlobal:
+			globalIndex := code.ReadUint16(vm.instructions[ip+1:])
+			ip += 2
+
+			err := vm.push(vm.globals[globalIndex])
 			if err != nil {
 				return err
 			}
