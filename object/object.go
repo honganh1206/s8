@@ -164,12 +164,14 @@ func (a *Array) Inspect() string {
 }
 
 // Help keys of the same type sharing the same hash pointing to the same memory location
+// Example: {"FB": 1, "Ea": 2} and hash("FB") == hash("Ea")
+// as they produce identical hash value
 type HashKey struct {
 	Type  ObjectType // Scope the HashKey to different object types i.e., string, integer and boolean
 	Value uint64     // Original key of a hash - Needed to store hashed values of strings which need a large range
 }
 
-// Return 0 or 1 to naturally map to the binary feature of boolean values
+// Return numeric value of booleans
 func (b *Boolean) HashKey() HashKey {
 	var value uint64
 
@@ -217,6 +219,10 @@ type HashPair struct {
 //	        },
 //	    }
 //	}
+//
+// Why don't we change the name to HashMap here?
+// Because HashMap refers to the internal Go map,
+// while Hash represents the overall object for the literal (more appropriate)
 type Hash struct {
 	Pairs map[HashKey]HashPair
 }
@@ -239,7 +245,8 @@ func (h *Hash) Inspect() string {
 	return out.String()
 }
 
-// Check if the given object could be used as a hash key
+// Since the hash key could be of any type,
+// check if the given object could be used as a hash key
 type Hashable interface {
 	HashKey() HashKey
 }

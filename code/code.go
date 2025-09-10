@@ -61,6 +61,8 @@ const (
 	OpGetGlobal
 	OpSetGlobal
 	OpArray
+	OpHash
+	OpIndex
 )
 
 // How an instruction looks like
@@ -107,7 +109,11 @@ var definitions = map[Opcode]*Definition{
 	OpNull:          {"OpNull", []int{}},
 	OpGetGlobal:     {"OpGetGlobal", []int{2}},
 	OpSetGlobal:     {"OpSetGlobal", []int{2}},
-	OpArray:         {"OpArray", []int{2}},
+	// Operand is number of values in an array
+	OpArray: {"OpArray", []int{2}},
+	// Operand is number of values x2 in a hash
+	OpHash:  {"OpHash", []int{2}},
+	OpIndex: {"OpIndex", []int{}},
 }
 
 func Lookup(op byte) (*Definition, error) {

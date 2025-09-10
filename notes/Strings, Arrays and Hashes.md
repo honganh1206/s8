@@ -11,3 +11,11 @@ The values of an array can change during either compile time or runtime. Since r
 This leads to a design change: Instead of building an array during compile time and pass it to the VM, we tell the VM to **build an array on its own**.
 
 Flow: Compile all elements of an array to N values on the stack -> Emit `OpArray` instruction with operand as N.
+
+## Compiling hashes
+
+Just like arrays, hashes' values cannot be determined at compile time.
+
+## Compiling the index operator
+
+The data structures being indexed and the index itself can be produced by _any expression_. For that, we will build a _generic_ index operator into the compiler and VM.

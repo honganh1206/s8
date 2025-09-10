@@ -138,6 +138,44 @@ func (vm *VM) Run() error {
 			if err != nil {
 				return err
 			}
+		case code.OpArray:
+			numElems := int(code.ReadUint16(vm.instructions[ip+1:]))
+			ip += 2
+			// Elements might be scattered around the stack,
+			// not necessarily at the top of the stack going down
+			// N == endIndex - startIndex
+			array := vm.buildArray(vm.sp-numElems, vm.sp)
+			// Move the cursor to the start index
+			vm.sp = vm.sp - numElems
+
+			err := vm.push(array)
+			if err != nil {
+				return err
+			}
+		case code.OpHash:
+			numElems := int(code.ReadUint16(vm.instructions[ip+1:]))
+			ip += 2
+
+			hash, err := vm.buildHash(vm.sp-numElems, vm.sp)
+			if err != nil {
+				return err
+			}
+			vm.sp = vm.sp - numElems
+
+			err = vm.push(hash)
+			if err != nil {
+				return err
+			}
+		case code.OpIndex:
+			// Tip: Look at the tests in compiler_test.go and read from the bottom up.
+			// This is equal to from the stack top down
+			index := vm.pop()
+			left := vm.pop() // Probably an array or hash literal
+
+			err := vm.executeIndexExpression(left, index)
+			if err != nil {
+				return err
+			}
 		}
 
 	}
@@ -321,7 +359,7 @@ func (vm *VM) executePrefixIncrementDecrementOperator(op code.Opcode, val int64)
 	return vm.push(&object.Integer{Value: newVal})
 }
 
-func (vm *VM) executePostfixIncrementDecrementOperator(op code.Opcode, val int64) error {
+func (vm *VM) executePostfixIncrementDecrementOperator(_ code.Opcode, val int64) error {
 	// TODO: Set to environment later
 	return vm.push(&object.Integer{Value: val})
 }
@@ -335,4 +373,69 @@ func isTruthy(obj object.Object) bool {
 	default:
 		return true
 	}
+}
+
+func (vm *VM) buildArray(startIndex, endIndex int) object.Object {
+	elems := make([]object.Object, endIndex-startIndex)
+
+	for i := startIndex; i < endIndex; i++ {
+		// Start with the index 0 of the extracted stack chunk
+		elems[i-startIndex] = vm.stack[i]
+	}
+
+	return &object.Array{Elements: elems}
+}
+
+func (vm *VM) buildHash(startIndex, endIndex int) (object.Object, error) {
+	hashedPairs := make(map[object.HashKey]object.HashPair)
+	// K-V so we increment by 2
+	for i := startIndex; i < endIndex; i += 2 {
+		key := vm.stack[i]
+		// The value is right after the key :)
+		value := vm.stack[i+1]
+
+		pair := object.HashPair{Key: key, Value: value}
+		hashKey, ok := key.(object.Hashable)
+		if !ok {
+			return nil, fmt.Errorf("unusable as hash key: %s", key.Type())
+		}
+		hashedPairs[hashKey.HashKey()] = pair
+	}
+	return &object.Hash{Pairs: hashedPairs}, nil
+}
+
+func (vm *VM) executeIndexExpression(left, index object.Object) error {
+	switch {
+	case left.Type() == object.ARRAY_OBJ && index.Type() == object.INTERGER_OBJ:
+		return vm.executeArrayIndex(left, index)
+	case left.Type() == object.HASH_OBJ:
+		return vm.executeHashIndex(left, index)
+	default:
+		return fmt.Errorf("index operator not supported: %s", left.Type())
+	}
+}
+
+func (vm *VM) executeArrayIndex(array, index object.Object) error {
+	arrayObject := array.(*object.Array)
+	i := index.(*object.Integer).Value
+	// Start from 0
+	max := int64(len(arrayObject.Elements) - 1)
+	// Return null if out of bounds
+	if i < 0 || i > max {
+		return vm.push(Null)
+	}
+	return vm.push(arrayObject.Elements[i])
+}
+
+func (vm *VM) executeHashIndex(hash, index object.Object) error {
+	hashObject := hash.(*object.Hash)
+	key, ok := index.(object.Hashable)
+	if !ok {
+		return fmt.Errorf("unusable as hash key: %s", index.Type())
+	}
+	pair, ok := hashObject.Pairs[key.HashKey()]
+	if !ok {
+		return vm.push(Null)
+	}
+	return vm.push(pair.Value)
 }
