@@ -348,7 +348,7 @@ func (c *Compiler) emit(op code.Opcode, operands ...int) int {
 
 // emit invokes this
 func (c *Compiler) addInstruction(ins []byte) int {
-	posNewInstruction := len(c.instructions)
+	posNewInstruction := len(c.currentInstructions())
 	updatedInstructions := append(c.currentInstructions(), ins...)
 
 	// Add function statements (now as instructions) to the local scope
