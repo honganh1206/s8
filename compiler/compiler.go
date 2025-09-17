@@ -301,6 +301,20 @@ func (c *Compiler) Compile(node ast.Node) error {
 		}
 
 		c.emit(code.OpIndex)
+	case *ast.FunctionLiteral:
+		c.enterScope()
+		err := c.Compile(node.Body)
+		if err != nil {
+			return err
+		}
+
+		instructions := c.leaveScope()
+
+		// Change where compiled instructions are stored
+		// and this time they are not in the main scope
+		compiledFn := &object.CompiledFunction{Instructions: instructions}
+
+		c.emit(code.OpConstant, c.addConstant(compiledFn))
 	}
 
 	return nil
@@ -358,8 +372,14 @@ func (c *Compiler) lastInstructionIsPop() bool {
 
 // Retain a value on a stack
 func (c *Compiler) removeLastPop() {
-	c.instructions = c.instructions[:c.scopes[c.scopeIndex].lastInstruction.Position]
-	c.scopes[c.scopeIndex].lastInstruction = c.scopes[c.scopeIndex].previousInstruction
+	last := c.scopes[c.scopeIndex].lastInstruction
+	previous := c.scopes[c.scopeIndex].previousInstruction
+
+	old := c.currentInstructions()
+	new := old[:last.Position]
+
+	c.scopes[c.scopeIndex].instructions = new
+	c.scopes[c.scopeIndex].lastInstruction = previous
 }
 
 func (c *Compiler) currentInstructions() code.Instructions {
@@ -369,15 +389,16 @@ func (c *Compiler) currentInstructions() code.Instructions {
 // Replace an instruction at an arbitrary offset (pos)
 // in the isntruction slice
 func (c *Compiler) replaceInstructions(pos int, newInstruction []byte) {
+	ins := c.currentInstructions()
 	for i := range newInstruction {
-		c.instructions[pos+i] = newInstruction[i]
+		ins[pos+i] = newInstruction[i]
 	}
 }
 
 // Re-create the instruction with the new operand
 // assuming we only replace instructions of the same type
 func (c *Compiler) changeOperand(opPos int, operand int) {
-	op := code.Opcode(c.instructions[opPos])
+	op := code.Opcode(c.currentInstructions()[opPos])
 	newInstruction := code.Make(op, operand)
 
 	c.replaceInstructions(opPos, newInstruction)
