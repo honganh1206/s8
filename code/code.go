@@ -63,6 +63,11 @@ const (
 	OpArray
 	OpHash
 	OpIndex
+
+	// Functions
+	OpCall        // Tell the VM to start executing *object.CompiledFunction
+	OpReturnValue // Return value must be on top of the stack
+	OpReturn      // Return no value, resume to parent execution
 )
 
 // How an instruction looks like
@@ -112,8 +117,11 @@ var definitions = map[Opcode]*Definition{
 	// Operand is number of values in an array
 	OpArray: {"OpArray", []int{2}},
 	// Operand is number of values x2 in a hash
-	OpHash:  {"OpHash", []int{2}},
-	OpIndex: {"OpIndex", []int{}},
+	OpHash:        {"OpHash", []int{2}},
+	OpIndex:       {"OpIndex", []int{}},
+	OpCall:        {"OpCall", []int{}},
+	OpReturnValue: {"OpReturnValue", []int{}},
+	OpReturn:      {"OpReturn", []int{}},
 }
 
 func Lookup(op byte) (*Definition, error) {

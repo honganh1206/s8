@@ -12,12 +12,11 @@ type Compiler struct {
 	// The internal instruction slice
 	instructions code.Instructions
 	// The constant pool
-	constants []object.Object
-	// The one we have just emitted
-	lastInstruction EmittedInstruction
-	// The one before the recently emitted instruction
-	previousInstruction EmittedInstruction
-	symbolTable         *SymbolTable
+	constants   []object.Object
+	symbolTable *SymbolTable
+	// A stack of compilation scopes. Each scope is for a compiled function
+	scopes     []CompilationScope
+	scopeIndex int
 }
 
 // Compiled bytecode
@@ -33,13 +32,23 @@ type EmittedInstruction struct {
 	Position int
 }
 
+type CompilationScope struct {
+	instructions        code.Instructions
+	lastInstruction     EmittedInstruction
+	previousInstruction EmittedInstruction
+}
+
 func New() *Compiler {
-	return &Compiler{
+	mainScope := CompilationScope{
 		instructions:        code.Instructions{},
-		constants:           []object.Object{},
 		lastInstruction:     EmittedInstruction{},
 		previousInstruction: EmittedInstruction{},
-		symbolTable:         NewSymbolTable(),
+	}
+	return &Compiler{
+		constants:   []object.Object{},
+		symbolTable: NewSymbolTable(),
+		scopes:      []CompilationScope{mainScope},
+		scopeIndex:  0,
 	}
 }
 
@@ -203,7 +212,8 @@ func (c *Compiler) Compile(node ast.Node) error {
 		// to jump to the next instruction after If-Else
 		jumpPos := c.emit(code.OpJump, 9999)
 
-		afterConsequencePos := len(c.instructions)
+		// Handle scoped instructions and main instructions
+		afterConsequencePos := len(c.currentInstructions())
 		c.changeOperand(jumpNotTruthyPos, afterConsequencePos)
 
 		if node.Alternative == nil {
@@ -220,7 +230,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 		}
 		// If not truthy but we have Alternatiive, jump to statements outside of Else block
 		// If not truthy but there is no Alternative, jump to OpNull
-		afterAlternativePos := len(c.instructions)
+		afterAlternativePos := len(c.currentInstructions())
 		c.changeOperand(jumpPos, afterAlternativePos)
 	case *ast.BlockStatement:
 		for _, s := range node.Statements {
@@ -299,7 +309,7 @@ func (c *Compiler) Compile(node ast.Node) error {
 // Return compiled bytecode
 func (c *Compiler) Bytecode() *Bytecode {
 	return &Bytecode{
-		Instructions: c.instructions,
+		Instructions: c.currentInstructions(),
 		Constants:    c.constants,
 	}
 }
@@ -322,29 +332,38 @@ func (c *Compiler) emit(op code.Opcode, operands ...int) int {
 	return pos
 }
 
+// emit invokes this
 func (c *Compiler) addInstruction(ins []byte) int {
 	posNewInstruction := len(c.instructions)
-	c.instructions = append(c.instructions, ins...)
+	updatedInstructions := append(c.currentInstructions(), ins...)
+
+	// Add function statements (now as instructions) to the local scope
+	c.scopes[c.scopeIndex].instructions = updatedInstructions
 	return posNewInstruction
 }
 
 // Type-safe way to check the latest emitted instruction
 // without having to do casting from and to bytes
 func (c *Compiler) setLastInstruction(op code.Opcode, pos int) {
-	prev := c.lastInstruction
+	prev := c.scopes[c.scopeIndex].lastInstruction
 	last := EmittedInstruction{Opcode: op, Position: pos}
 
-	c.previousInstruction = prev
-	c.lastInstruction = last
+	c.scopes[c.scopeIndex].previousInstruction = prev
+	c.scopes[c.scopeIndex].lastInstruction = last
 }
 
 func (c *Compiler) lastInstructionIsPop() bool {
-	return c.lastInstruction.Opcode == code.OpPop
+	return c.scopes[c.scopeIndex].lastInstruction.Opcode == code.OpPop
 }
 
+// Retain a value on a stack
 func (c *Compiler) removeLastPop() {
-	c.instructions = c.instructions[:c.lastInstruction.Position]
-	c.lastInstruction = c.previousInstruction
+	c.instructions = c.instructions[:c.scopes[c.scopeIndex].lastInstruction.Position]
+	c.scopes[c.scopeIndex].lastInstruction = c.scopes[c.scopeIndex].previousInstruction
+}
+
+func (c *Compiler) currentInstructions() code.Instructions {
+	return c.scopes[c.scopeIndex].instructions
 }
 
 // Replace an instruction at an arbitrary offset (pos)
@@ -362,4 +381,24 @@ func (c *Compiler) changeOperand(opPos int, operand int) {
 	newInstruction := code.Make(op, operand)
 
 	c.replaceInstructions(opPos, newInstruction)
+}
+
+func (c *Compiler) enterScope() {
+	scope := CompilationScope{
+		instructions:        code.Instructions{},
+		lastInstruction:     EmittedInstruction{},
+		previousInstruction: EmittedInstruction{},
+	}
+	c.scopes = append(c.scopes, scope)
+	c.scopeIndex++
+}
+
+func (c *Compiler) leaveScope() code.Instructions {
+	instructions := c.currentInstructions()
+
+	// Remove the latest scope i.e., the top stack scope
+	c.scopes = c.scopes[:len(c.scopes)-1]
+	c.scopeIndex--
+
+	return instructions
 }

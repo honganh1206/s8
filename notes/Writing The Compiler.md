@@ -11,3 +11,5 @@
 [[Keeping track of names]]
 
 [[Strings, Arrays and Hashes]]
+
+[[Functions]]

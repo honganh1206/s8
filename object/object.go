@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"hash/fnv"
 	"s8/ast"
+	"s8/code"
 	"strings"
 )
 
@@ -28,6 +29,9 @@ const (
 	MACRO_OBJ        = "MACRO"
 	BREAK_OBJ        = "BREAK"
 	CONTINUE_OBJ     = "CONTINUE"
+	// Hold the instructions of a compiled function
+	// then we pass it as a constant
+	COMPILED_FUNCTION_OBJ = "COMPILED_FUNCTION_OBJ"
 )
 
 // Interface instead of struct
@@ -288,4 +292,15 @@ func (m *Macro) Inspect() string {
 	out.WriteString("\n}")
 
 	return out.String()
+}
+
+// Hold bytecode instead of AST nodes
+type CompiledFunction struct {
+	Instructions code.Instructions
+}
+
+func (cf *CompiledFunction) Type() ObjectType { return COMPILED_FUNCTION_OBJ }
+
+func (cf *CompiledFunction) Inspect() string {
+	return fmt.Sprintf("CompiledFunction[%p]", cf)
 }
