@@ -532,6 +532,7 @@ func TestIndexExpressions(t *testing.T) {
 
 func TestFunctions(t *testing.T) {
 	tests := []compilerTestCase{
+		// Explicit return
 		{
 			input: `funk() { return 5 + 10 }`,
 			expectedConstants: []any{
@@ -542,6 +543,44 @@ func TestFunctions(t *testing.T) {
 					code.Make(code.OpConstant, 0),
 					code.Make(code.OpConstant, 1),
 					code.Make(code.OpAdd),
+					code.Make(code.OpReturnValue),
+				},
+			},
+			expectedInstructions: []code.Instructions{
+				// At this point we push the returned value to the top of stack
+				code.Make(code.OpConstant, 2),
+				code.Make(code.OpPop),
+			},
+		},
+		// Implicit return
+		{
+			input: `funk() { 5 + 10 }`,
+			expectedConstants: []any{
+				5,
+				10,
+				[]code.Instructions{
+					code.Make(code.OpConstant, 0),
+					code.Make(code.OpConstant, 1),
+					code.Make(code.OpAdd),
+					code.Make(code.OpReturnValue),
+				},
+			},
+			expectedInstructions: []code.Instructions{
+				// Operand 0 not 2??
+				code.Make(code.OpConstant, 2),
+				code.Make(code.OpPop),
+			},
+		},
+		// Retain the latest value
+		{
+			input: `funk() { 1; 2 }`,
+			expectedConstants: []any{
+				1,
+				2,
+				[]code.Instructions{
+					code.Make(code.OpConstant, 0),
+					code.Make(code.OpPop),
+					code.Make(code.OpConstant, 1),
 					code.Make(code.OpReturnValue),
 				},
 			},

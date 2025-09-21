@@ -36,3 +36,5 @@ We cannot just call `Compile` to the `Body` field of `*ast.FunctionLiteral` - it
 We use **scopes** - bundle our instructions in a compilation scope and use a stack of compilation scopes
 
 > We need to carefully separate the instructions from a function (scoped) and the ones from the main flow.
+
+We need to make sure the implicit returning (`funk() { 1 + 2 }`) results in the same bytecode as the explicit return (`funk() { return 1 + 2}`) does.
