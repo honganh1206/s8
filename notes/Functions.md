@@ -38,3 +38,33 @@ We use **scopes** - bundle our instructions in a compilation scope and use a sta
 > We need to carefully separate the instructions from a function (scoped) and the ones from the main flow.
 
 We need to make sure the implicit returning (`funk() { 1 + 2 }`) results in the same bytecode as the explicit return (`funk() { return 1 + 2}`) does.
+
+## Functions in the VM
+
+At this point, the bytecode's `Constant` field now contains `*object.CompiledFunction`s.
+
+Execution flow:
+
+1. `OpCall` is invoked
+2. Execute instructions of `*object.CompiledFunction` (top of the stack at this point)
+3. Encounter either `OpReturnValue` or `OpReturn`
+4. If `OpReturnValue` then preserve the return value + replace `*object.CompiledFunction` on top of the stack with preserved value.
+
+We maintain the usual instruction execution flow, plus _changing the instruction slice and pointer back multiple times_. We need to restore the slice + pointer after executing a function call. And don't forget nested execution of functions :)
+
+Think of this example:
+
+```js
+let one = fn() { 5 };
+let two = fn() { one() };
+let three = fn() { two() };
+three();
+```
+
+We update the slice and pointer when `three()` is called, and we do the same thing when `one()` and `two()` are called.
+
+Idea: We tie the instruction + the instruction pointer to a bundle called **frame** aka **stack frame** aka **call frame** aka **activation record**.
+
+Usually on real machines, we store function calls in the call stack. But since we are working with a VM, _we are not constrained by calling conventions of the call stack_, and instead we are _free to store frames anywhere we like_.
+
+And we are going to make the VM use frames for functions :)
