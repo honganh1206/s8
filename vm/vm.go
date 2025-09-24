@@ -24,10 +24,10 @@ type VM struct {
 	constants []object.Object
 	stack     []object.Object
 	// stackpointer points to the next free slot in the stack. top of stack is stack[sp-1]
-	sp         int
-	globals    []object.Object
-	frames     []*Frame
-	frameIndex int
+	sp          int
+	globals     []object.Object
+	frames      []*Frame
+	framesIndex int
 }
 
 func New(bytecode *compiler.Bytecode) *VM {
@@ -38,13 +38,14 @@ func New(bytecode *compiler.Bytecode) *VM {
 
 	frames := make([]*Frame, MaxFrames)
 	frames[0] = mainFrame
+
 	return &VM{
-		constants:  bytecode.Constants,
-		stack:      make([]object.Object, StackSize),
-		sp:         0,
-		globals:    make([]object.Object, GlobalSize),
-		frames:     frames,
-		frameIndex: 1,
+		constants:   bytecode.Constants,
+		stack:       make([]object.Object, StackSize),
+		sp:          0,
+		globals:     make([]object.Object, GlobalSize),
+		frames:      frames,
+		framesIndex: 1,
 	}
 }
 
@@ -74,6 +75,7 @@ func (vm *VM) Run() error {
 		ip = vm.currentFrame().ip
 		ins = vm.currentFrame().Instructions()
 		op = code.Opcode(ins[ip])
+
 		switch op {
 		case code.OpConstant:
 			// Decode the pointer to the operand right after the opcode
@@ -191,6 +193,31 @@ func (vm *VM) Run() error {
 			left := vm.pop() // Probably an array or hash literal
 
 			err := vm.executeIndexExpression(left, index)
+			if err != nil {
+				return err
+			}
+		case code.OpCall:
+			fn, ok := vm.stack[vm.sp-1].(*object.CompiledFunction)
+			if !ok {
+				return fmt.Errorf("calling non-function")
+			}
+			frame := NewFrame(fn)
+			vm.pushFrame(frame)
+		case code.OpReturnValue:
+			returnValue := vm.pop()
+
+			vm.popFrame()
+			vm.pop()
+
+			err := vm.push(returnValue)
+			if err != nil {
+				return err
+			}
+		case code.OpReturn:
+			vm.popFrame()
+			vm.pop()
+
+			err := vm.push(Null)
 			if err != nil {
 				return err
 			}
@@ -459,17 +486,17 @@ func (vm *VM) executeHashIndex(hash, index object.Object) error {
 }
 
 func (vm *VM) currentFrame() *Frame {
-	return vm.frames[vm.frameIndex-1]
+	return vm.frames[vm.framesIndex-1]
 }
 
 // Push a frame to the stack frame
 func (vm *VM) pushFrame(f *Frame) {
-	vm.frames[vm.frameIndex] = f
-	vm.frameIndex++
+	vm.frames[vm.framesIndex] = f
+	vm.framesIndex++
 }
 
 // Pop a frame off a stack frame
 func (vm *VM) popFrame() *Frame {
-	vm.frameIndex--
-	return vm.frames[vm.frameIndex]
+	vm.framesIndex--
+	return vm.frames[vm.framesIndex]
 }

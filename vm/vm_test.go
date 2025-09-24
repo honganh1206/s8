@@ -165,6 +165,59 @@ func TestIndexExpressions(t *testing.T) {
 	runVmTests(t, tests)
 }
 
+func TestCallingFunctionsWithoutArguments(t *testing.T) {
+	tests := []vmTestCase{
+		{
+			input: `
+let fivePlusTen = funk() { 5 + 10; };
+fivePlusTen();
+`,
+			expected: 15,
+		},
+		{
+			input: `
+let one = funk() { 1; };
+let two = funk() { 2; };
+one() + two()
+`,
+			expected: 3,
+		},
+		{
+			input: `
+let a = funk() { 1 };
+let b = funk() { a() + 1 };
+let c = funk() { b() + 1 };
+c();
+`,
+			expected: 3,
+		},
+	}
+	runVmTests(t, tests)
+}
+
+func TestFunctionsWithoutReturnValue(t *testing.T) {
+	tests := []vmTestCase{
+		{
+			input: `
+let noReturn = funk() { };
+noReturn();
+`,
+			expected: Null,
+		},
+		{
+			input: `
+let noReturn = funk() { };
+let noReturnTwo = funk() { noReturn(); };
+noReturn();
+noReturnTwo();
+`,
+			expected: Null,
+		},
+	}
+
+	runVmTests(t, tests)
+}
+
 func runVmTests(t *testing.T, tests []vmTestCase) {
 	t.Helper()
 
