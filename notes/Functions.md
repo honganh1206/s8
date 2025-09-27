@@ -68,3 +68,7 @@ Idea: We tie the instruction + the instruction pointer to a bundle called **fram
 Usually on real machines, we store function calls in the call stack. But since we are working with a VM, _we are not constrained by calling conventions of the call stack_, and instead we are _free to store frames anywhere we like_.
 
 And we are going to make the VM use frames for functions :)
+
+After we are done compiling function calls, we also "accidentally" implement compiling first-class functions (functions as arguments to other functions)
+
+[[Local bindings]]

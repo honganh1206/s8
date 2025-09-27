@@ -60,6 +60,8 @@ const (
 	OpNull
 	OpGetGlobal
 	OpSetGlobal
+	OpGetLocal
+	OpSetLocal
 	OpArray
 	OpHash
 	OpIndex
@@ -81,8 +83,8 @@ type Definition struct {
 // Similar to the precedence table, we will store operations like ADD, JUMP, etc. here
 var definitions = map[Opcode]*Definition{
 	// Push constant to top of the stack
-	// Two-byte wide operand maximum of 65536
-	// That's more than enough. We won't be having more than 65536 references
+	// Two-byte wide operand maximum of 65536 is more than enough.
+	// We won't be having more than 65536 references aka values that exceed 65536.
 	OpConstant: {"OpConstant", []int{2}},
 	// No operand
 	OpAdd:         {"OpAdd", []int{}},
@@ -114,6 +116,9 @@ var definitions = map[Opcode]*Definition{
 	OpNull:          {"OpNull", []int{}},
 	OpGetGlobal:     {"OpGetGlobal", []int{2}},
 	OpSetGlobal:     {"OpSetGlobal", []int{2}},
+	OpSetLocal:      {"OpSetLocal", []int{1}},
+	// One-byte operands
+	OpGetLocal: {"OpGetLocal", []int{1}},
 	// Operand is number of values in an array
 	OpArray: {"OpArray", []int{2}},
 	// Operand is number of values x2 in a hash
@@ -133,7 +138,7 @@ func Lookup(op byte) (*Definition, error) {
 	return def, nil
 }
 
-// Generate an instruction
+// Encode instructions to slice of bytes
 func Make(op Opcode, operands ...int) []byte {
 	def, ok := definitions[op]
 	if !ok {
@@ -154,13 +159,15 @@ func Make(op Opcode, operands ...int) []byte {
 
 	for i, o := range operands {
 		width := def.OperandWidths[i]
-		// Encode the operands into the instruction
+		// Encode the operands into the instruction as bytes
 		switch width {
 		case 2:
 			// Take the width-matching element in the operands slice and put it into the instruction
 			// The 1st operand is put behind the opcode
 			// Then the 2nd one is put behind the 1st one and so on
 			binary.BigEndian.PutUint16(instruction[offset:], uint16(o))
+		case 1:
+			instruction[offset] = byte(o)
 		}
 		// Mark where to put the next operand
 		offset += width
@@ -176,9 +183,11 @@ func ReadOperands(def *Definition, ins Instructions) ([]int, int) {
 
 	for i, width := range def.OperandWidths {
 		switch width {
+		// Retrieve and decode the operand at that position/offset
 		case 2:
-			// Retrieve and decode the operand at that position/offset
 			operands[i] = int(ReadUint16(ins[offset:]))
+		case 1:
+			operands[i] = int(ReadUint8(ins[offset:]))
 		}
 
 		offset += width
@@ -186,9 +195,12 @@ func ReadOperands(def *Definition, ins Instructions) ([]int, int) {
 	return operands, offset
 }
 
-// A separate function to be used by the VM
 func ReadUint16(ins Instructions) uint16 {
 	return binary.BigEndian.Uint16(ins)
+}
+
+func ReadUint8(ins Instructions) uint8 {
+	return uint8(ins[0])
 }
 
 // String-tify the instructions

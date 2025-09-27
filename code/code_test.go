@@ -8,12 +8,12 @@ func TestMake(t *testing.T) {
 		operands []int
 		expected []byte
 	}{
-		// Fetch the 65534th constant from the constant pool and load it to the stack
-		// The operand needs 2 bytes to represent as we use uint16 namely 0xFF and 0xFE
-		// Why not uint32? Then we use less bytes and thus instructions are smaller
-		// We can also check if the most significant byte 0xFF comes first
+		// The operand needs 2 bytes to represent as we use uint16 namely 0xFF and 0xFE,
+		// that means the constant pool can hold up to 65536 constants,
 		{OpConstant, []int{65534}, []byte{byte(OpConstant), 255, 254}},
 		{OpAdd, []int{}, []byte{byte(OpAdd)}},
+		// 256 local bindings per function should be enough?
+		{OpGetLocal, []int{255}, []byte{byte(OpGetLocal), 255}},
 	}
 
 	for _, tt := range tests {
@@ -35,14 +35,16 @@ func TestMake(t *testing.T) {
 func TestInstructionsString(t *testing.T) {
 	instructions := []Instructions{
 		Make(OpAdd),
+		Make(OpGetLocal, 1),
 		Make(OpConstant, 2),
 		Make(OpConstant, 65535),
 	}
 
 	// Byte offset - Opcode (1 byte) - Operand (2 bytes)
 	expected := `0000 OpAdd
-0001 OpConstant 2
-0004 OpConstant 65535
+0001 OpGetLocal 1
+0003 OpConstant 2
+0006 OpConstant 65535
 `
 
 	concatted := Instructions{} // Flatten the slice of slices into 1 slice
@@ -64,6 +66,7 @@ func TestReadOperands(t *testing.T) {
 		bytesRead int
 	}{
 		{OpConstant, []int{65535}, 2},
+		{OpGetLocal, []int{255}, 1},
 	}
 
 	for _, tt := range tests {

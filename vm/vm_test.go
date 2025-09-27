@@ -218,6 +218,20 @@ noReturnTwo();
 	runVmTests(t, tests)
 }
 
+func TestFirstClassFunctions(t *testing.T) {
+	tests := []vmTestCase{
+		{
+			input: `
+let returnsOne = funk() { 1; };
+let returnsOneReturner = funk() { returnsOne; };
+returnsOneReturner()();
+`,
+			expected: 1,
+		},
+	}
+	runVmTests(t, tests)
+}
+
 func runVmTests(t *testing.T, tests []vmTestCase) {
 	t.Helper()
 
