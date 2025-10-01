@@ -34,7 +34,7 @@ func New(bytecode *compiler.Bytecode) *VM {
 	// Pre-allocate the frames slice with the main frame,
 	// now we don't need to initialize the instructions in the VM struct.
 	mainFn := &object.CompiledFunction{Instructions: bytecode.Instructions}
-	mainFrame := NewFrame(mainFn)
+	mainFrame := NewFrame(mainFn, 0)
 
 	frames := make([]*Frame, MaxFrames)
 	frames[0] = mainFrame
@@ -150,11 +150,30 @@ func (vm *VM) Run() error {
 			vm.currentFrame().ip += 2
 
 			vm.globals[globalIndex] = vm.pop()
+		case code.OpSetLocal:
+			localIndex := code.ReadUint8(ins[ip+1:])
+			// Operand for local bindings is only 1-byte wide.
+			vm.currentFrame().ip += 1
+
+			// Get the frame of the callee function
+			frame := vm.currentFrame()
+			// Save the binding to the stack frame
+			// using the base pointer and the index of the binding as an offset
+			vm.stack[frame.basePointer+int(localIndex)] = vm.pop()
 		case code.OpGetGlobal:
 			globalIndex := code.ReadUint16(ins[ip+1:])
 			vm.currentFrame().ip += 2
 
 			err := vm.push(vm.globals[globalIndex])
+			if err != nil {
+				return err
+			}
+		case code.OpGetLocal:
+			localIndex := code.ReadUint8(ins[ip+1:])
+			vm.currentFrame().ip += 1
+
+			frame := vm.currentFrame()
+			err := vm.push(vm.stack[frame.basePointer+int(localIndex)])
 			if err != nil {
 				return err
 			}
@@ -201,21 +220,30 @@ func (vm *VM) Run() error {
 			if !ok {
 				return fmt.Errorf("calling non-function")
 			}
-			frame := NewFrame(fn)
+			// Store the current stack pointer
+			// so we know somewhere to resume when we are done with the function call.
+			frame := NewFrame(fn, vm.sp)
 			vm.pushFrame(frame)
+			// Create a "hole" - region of the stack for the local bindings of the OpCall being executed
+			vm.sp = frame.basePointer + fn.NumLocals
 		case code.OpReturnValue:
 			returnValue := vm.pop()
 
-			vm.popFrame()
-			vm.pop()
+			// Take the frame for the function call off the stack
+			frame := vm.popFrame()
+			// At this point the base pointer is pointing to the just-executed function,
+			// so when we pop the frame of the function off the stack, we reset the stack pointer as well.
+			// It's also an optimization: When we get rid off the local bindings, we leave the just-executed function on the stack.
+			// So instead of another vm.pop() to pop the function object off the stack, we decrement vm.sp even further.
+			vm.sp = frame.basePointer - 1
 
 			err := vm.push(returnValue)
 			if err != nil {
 				return err
 			}
 		case code.OpReturn:
-			vm.popFrame()
-			vm.pop()
+			frame := vm.popFrame()
+			vm.sp = frame.basePointer - 1
 
 			err := vm.push(Null)
 			if err != nil {

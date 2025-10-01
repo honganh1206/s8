@@ -232,6 +232,60 @@ returnsOneReturner()();
 	runVmTests(t, tests)
 }
 
+func TestCallingFunctionWithBindings(t *testing.T) {
+	tests := []vmTestCase{
+		// Ensure local bindings work
+		{
+			input: `
+			let one = funk(){ let one = 1; one };
+			one();`,
+			expected: 1,
+		},
+		// Multiple local bindings in the same function
+		{
+			input: `
+let oneAndTwo = funk() { let one = 1; let two = 2; one + two; };
+oneAndTwo();
+`,
+			expected: 3,
+		},
+		// Multiple local bindings in different functions
+		{
+			input: `
+let oneAndTwo = funk() { let one = 1; let two = 2; one + two; };
+let threeAndFour = funk() { let three = 3; let four = 4; three + four; };
+oneAndTwo() + threeAndFour();
+`,
+			expected: 10,
+		},
+		// Ensure local bindings with the same names don't get mixed up
+		{
+			input: `
+let firstFoobar = funk() { let foobar = 50; foobar; };
+let secondFoobar = funk() { let foobar = 100; foobar; };
+firstFoobar() + secondFoobar();
+`,
+			expected: 150,
+		},
+		{
+			input: `
+let globalSeed = 50;
+let minusOne = funk() {
+	let num = 1;
+	globalSeed - num;
+}
+let minusTwo = funk() {
+	let num = 2;
+	globalSeed - num;
+}
+minusOne() + minusTwo();
+`,
+			expected: 97,
+		},
+	}
+	runVmTests(t, tests)
+}
+
 func runVmTests(t *testing.T, tests []vmTestCase) {
 	t.Helper()
 
