@@ -298,7 +298,8 @@ func (m *Macro) Inspect() string {
 type CompiledFunction struct {
 	Instructions code.Instructions
 	// The number of local bindings the function is going to create
-	NumLocals int
+	NumLocals     int
+	NumParameters int
 }
 
 func (cf *CompiledFunction) Type() ObjectType { return COMPILED_FUNCTION_OBJ }

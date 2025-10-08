@@ -535,6 +535,11 @@ func (vm *VM) callFunction(numArgs int) error {
 	if !ok {
 		return fmt.Errorf("calling non-function")
 	}
+
+	if numArgs != fn.NumParameters {
+		return fmt.Errorf("wrong number of arguments: want=%d, got=%d",
+			fn.NumParameters, numArgs)
+	}
 	// Store the current stack pointer as the base/frame pointer
 	// so we know somewhere to resume when we are done with the function call.
 	// We also need to subtract the argument indexes so the base pointer does not point to empty stack slots.
