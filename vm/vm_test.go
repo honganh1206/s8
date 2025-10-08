@@ -288,6 +288,27 @@ func runVmTests(t *testing.T, tests []vmTestCase) {
 	}
 }
 
+func TestCallingFunctionsWithArgumentsAndBindings(t *testing.T) {
+	tests := []vmTestCase{
+		{
+			input: `
+		let identity = funk(a) { a; };
+		identity(4);
+		`,
+			expected: 4,
+		},
+		{
+			input: `
+let sum = funk(a, b) { a + b; };
+sum(1, 2);
+`,
+			expected: 3,
+		},
+	}
+
+	runVmTests(t, tests)
+}
+
 func testExpectedObject(t *testing.T, expected any, actual object.Object) {
 	t.Helper()
 

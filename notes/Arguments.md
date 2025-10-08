@@ -17,3 +17,41 @@ Compiling the arguments is as easy as iterating over each argument and recursive
 We treat arguments in a way _no different than local bindings_ created in the same function. And we will treat them the same.
 
 A coincidence: Arguements sit right above the function call, and that's also where local bindings are. So _we treat arguments as locals, and they would be exactly where they need to be_.
+
+## A sinister bug behind the base pointer
+
+We treat arguments as locals, so the VM must do some calculations with the base pointer and the number of locals. But there lies an issue: Our stack pointer is too high on the stack.
+
+Expectation: The base pointer should remain constant while the stack pointer changes when new stuff is pushed into the stack. Right before we execute a function, we set basePointer to the current value of the stack pointer. Then we increase the stack pointer when we push new values onto the stack, thus creating a memory region to store local bindings and arguments.
+
+```css
+         vm.sp ──▶  +-----------+
+                    |           |   ◀── basePointer+2
+                    +-----------+
+                    |   Arg 2   |   ◀── basePointer+1
+                    +-----------+
+                    |   Arg 1   |   ◀── basePointer
+                    +-----------+
+                    | Function  |
+                    +-----------+
+```
+
+Hidden bug: After we pushed the arguments on the stack, **the base pointer and the stack pointer are set to the same value**. And when we do the `basePointer + local binding index` formula, the base pointer points to empty/undefined region of the stack.
+
+```css
+         vm.sp ──▶  +-----------+
+                    |           |   ◀── basePointer+2
+                    +-----------+
+                    |           |   ◀── basePointer+1
+                    +-----------+
+                    |           |   ◀── basePointer
+                    +-----------+
+                    |   Arg 2   |
+                    +-----------+
+                    |   Arg 1   |
+                    +-----------+
+                    | Function  |
+                    +-----------+
+```
+
+Solution: A new formula `basePointer = vm.sp - numArguments` to anchor the base pointer AFTER we have pushed arguments onto the stack.

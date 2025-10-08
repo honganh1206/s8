@@ -22,7 +22,8 @@ var Null = &object.Null{}
 type VM struct {
 	// constant pool
 	constants []object.Object
-	stack     []object.Object
+	// The stack elements are numbered/accessed from the bottom up, with index 0 being the bottom. The topmost element is at index sp-1, the second from top at sp-2, etc.
+	stack []object.Object
 	// stackpointer points to the next free slot in the stack. top of stack is stack[sp-1]
 	sp          int
 	globals     []object.Object
@@ -216,17 +217,14 @@ func (vm *VM) Run() error {
 				return err
 			}
 		case code.OpCall:
+			// Arguments now sit on top of function object on the stack
+			numArgs := code.ReadUint8(ins[ip+1:])
 			vm.currentFrame().ip += 1
-			fn, ok := vm.stack[vm.sp-1].(*object.CompiledFunction)
-			if !ok {
-				return fmt.Errorf("calling non-function")
+
+			err := vm.callFunction(int(numArgs))
+			if err != nil {
+				return err
 			}
-			// Store the current stack pointer
-			// so we know somewhere to resume when we are done with the function call.
-			frame := NewFrame(fn, vm.sp)
-			vm.pushFrame(frame)
-			// Create a "hole" - region of the stack for the local bindings of the OpCall being executed
-			vm.sp = frame.basePointer + fn.NumLocals
 		case code.OpReturnValue:
 			returnValue := vm.pop()
 
@@ -528,4 +526,22 @@ func (vm *VM) pushFrame(f *Frame) {
 func (vm *VM) popFrame() *Frame {
 	vm.framesIndex--
 	return vm.frames[vm.framesIndex]
+}
+
+func (vm *VM) callFunction(numArgs int) error {
+	// At the moment the stack pointer is pointing to the next free slot (arrays start at 0 remember?)
+	// so we need to access the function by -1 to avoid accessing empty/undefined stack location
+	fn, ok := vm.stack[vm.sp-1-int(numArgs)].(*object.CompiledFunction)
+	if !ok {
+		return fmt.Errorf("calling non-function")
+	}
+	// Store the current stack pointer as the base/frame pointer
+	// so we know somewhere to resume when we are done with the function call.
+	// We also need to subtract the argument indexes so the base pointer does not point to empty stack slots.
+	frame := NewFrame(fn, vm.sp-numArgs)
+	vm.pushFrame(frame)
+	// Create a "hole" - memory region of the stack for the local bindings of the OpCall being executed
+	vm.sp = frame.basePointer + fn.NumLocals
+
+	return nil
 }
