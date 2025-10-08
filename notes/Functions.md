@@ -72,3 +72,5 @@ And we are going to make the VM use frames for functions :)
 After we are done compiling function calls, we also "accidentally" implement compiling first-class functions (functions as arguments to other functions)
 
 [[Local bindings]]
+
+[[Arguments]]

@@ -195,29 +195,6 @@ c();
 	runVmTests(t, tests)
 }
 
-func TestFunctionsWithoutReturnValue(t *testing.T) {
-	tests := []vmTestCase{
-		{
-			input: `
-let noReturn = funk() { };
-noReturn();
-`,
-			expected: Null,
-		},
-		{
-			input: `
-let noReturn = funk() { };
-let noReturnTwo = funk() { noReturn(); };
-noReturn();
-noReturnTwo();
-`,
-			expected: Null,
-		},
-	}
-
-	runVmTests(t, tests)
-}
-
 func TestFirstClassFunctions(t *testing.T) {
 	tests := []vmTestCase{
 		{

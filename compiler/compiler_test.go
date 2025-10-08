@@ -593,6 +593,115 @@ func TestFunctions(t *testing.T) {
 	runCompilerTests(t, tests)
 }
 
+func TestFunctionsWithoutReturnValue(t *testing.T) {
+	tests := []compilerTestCase{
+		{
+			input: `funk() { }`,
+			expectedConstants: []any{
+				[]code.Instructions{
+					code.Make(code.OpReturn),
+				},
+			},
+			expectedInstructions: []code.Instructions{
+				code.Make(code.OpConstant, 0),
+				code.Make(code.OpPop),
+			},
+		},
+	}
+	runCompilerTests(t, tests)
+}
+
+func TestFunctionCalls(t *testing.T) {
+	tests := []compilerTestCase{
+		{
+			input: `funk() { 24 }();`,
+			expectedConstants: []any{
+				24,
+				[]code.Instructions{
+					code.Make(code.OpConstant, 0), // The literal "24"
+					code.Make(code.OpReturnValue),
+				},
+			},
+			expectedInstructions: []code.Instructions{
+				code.Make(code.OpConstant, 1), // The compiled function
+				code.Make(code.OpCall, 0),
+				code.Make(code.OpPop),
+			},
+		},
+		{
+			input: `
+let noArg = funk() { 24 };
+noArg();
+`,
+			expectedConstants: []any{
+				24,
+				[]code.Instructions{
+					code.Make(code.OpConstant, 0), // The literal "24"
+					code.Make(code.OpReturnValue),
+				},
+			},
+			expectedInstructions: []code.Instructions{
+				code.Make(code.OpConstant, 1), // The compiled function
+				code.Make(code.OpSetGlobal, 0),
+				code.Make(code.OpGetGlobal, 0), code.Make(code.OpCall, 0),
+				code.Make(code.OpPop),
+			},
+		},
+		{
+			input: `
+let oneArg = funk(a) { a; };
+oneArg(24);
+`,
+			expectedConstants: []any{
+				[]code.Instructions{
+					// Treat arguments as local bindings
+					code.Make(code.OpGetLocal, 0),
+					code.Make(code.OpReturnValue),
+				},
+				24,
+			},
+			expectedInstructions: []code.Instructions{
+				code.Make(code.OpConstant, 0),
+				code.Make(code.OpSetGlobal, 0),
+				code.Make(code.OpGetGlobal, 0),
+				code.Make(code.OpConstant, 1),
+				code.Make(code.OpCall, 1),
+				code.Make(code.OpPop),
+			},
+		},
+		{
+			input: `
+let manyArg = funk(a, b, c) { a; b; c; };
+manyArg(24, 25, 26);
+`,
+			expectedConstants: []any{
+				[]code.Instructions{
+					code.Make(code.OpGetLocal, 0),
+					code.Make(code.OpPop),
+					code.Make(code.OpGetLocal, 1),
+					code.Make(code.OpPop),
+					code.Make(code.OpGetLocal, 2),
+					code.Make(code.OpReturnValue),
+				},
+				24,
+				25,
+				26,
+			},
+			expectedInstructions: []code.Instructions{
+				code.Make(code.OpConstant, 0),
+				code.Make(code.OpSetGlobal, 0),
+				code.Make(code.OpGetGlobal, 0),
+				code.Make(code.OpConstant, 1),
+				code.Make(code.OpConstant, 2),
+				code.Make(code.OpConstant, 3),
+				code.Make(code.OpCall, 3),
+				code.Make(code.OpPop),
+			},
+		},
+	}
+	runCompilerTests(t, tests)
+}
+
 func TestCompilerScopes(t *testing.T) {
 	compiler := New()
 	if compiler.scopeIndex != 0 {

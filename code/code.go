@@ -124,7 +124,7 @@ var definitions = map[Opcode]*Definition{
 	// Operand is number of values x2 in a hash
 	OpHash:        {"OpHash", []int{2}},
 	OpIndex:       {"OpIndex", []int{}},
-	OpCall:        {"OpCall", []int{}},
+	OpCall:        {"OpCall", []int{1}},
 	OpReturnValue: {"OpReturnValue", []int{}},
 	OpReturn:      {"OpReturn", []int{}},
 }
