@@ -20,6 +20,11 @@ func Start(in io.Reader, out io.Writer) {
 	globals := make([]object.Object, vm.GlobalSize)
 	symbolTable := compiler.NewSymbolTable()
 
+	// Pre-define builtin functions
+	for i, v := range object.Builtins {
+		symbolTable.DefineBuiltin(i, v.Name)
+	}
+
 	// env persists between calls to Eval()
 	// env := object.NewEnvironment()
 	// macroEnv := object.NewEnvironment()
