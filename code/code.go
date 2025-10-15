@@ -70,6 +70,7 @@ const (
 	OpCall        // Tell the VM to start executing *object.CompiledFunction
 	OpReturnValue // Return value must be on top of the stack
 	OpReturn      // Return no value, resume to parent execution
+	OpGetBuiltin
 )
 
 // How an instruction looks like
@@ -127,6 +128,8 @@ var definitions = map[Opcode]*Definition{
 	OpCall:        {"OpCall", []int{1}},
 	OpReturnValue: {"OpReturnValue", []int{}},
 	OpReturn:      {"OpReturn", []int{}},
+	// Define up to 256 builtin functions
+	OpGetBuiltin: {"OpGetBuiltin", []int{1}},
 }
 
 func Lookup(op byte) (*Definition, error) {

@@ -622,9 +622,13 @@ func applyFunction(fn object.Object, args []object.Object) object.Object {
 
 		return unwrapReturnValue(evaluated)
 	case *object.Builtin:
-		return fn.Fn(args...)
+		if result := fn.Fn(args...); result != nil {
+			return result
+		}
+		// Check for nil and turn it to NULL
+		// since we don't want to juggle between two instances of *object.NULL
+		return NULL
 	default:
-
 		return newError("not a function: %s", fn.Type())
 	}
 }

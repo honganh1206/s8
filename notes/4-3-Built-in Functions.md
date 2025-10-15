@@ -18,3 +18,11 @@ func lenBuiltin(args []Object) Object {
 }
 
 ```
+
+When adding a compiler, we need the VM to be able to use the builtin functions as well. In that case, _we move the builtin function declaration to the `object` package_
+
+To execute the builtin functions on the VM, we keep our existing calling convention by using `OpCall`.
+
+The only difference compared when compiling a builtin function is _how the function ends up on the stack_.
+
+Builtin functions _have their own scopes_. And when the compiler detects a reference to a builtin function, it will emit a `OpGetBuiltin` instruction.
