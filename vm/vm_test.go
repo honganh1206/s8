@@ -2,12 +2,13 @@ package vm
 
 import (
 	"fmt"
+	"testing"
+
 	"s8/ast"
 	"s8/compiler"
 	"s8/lexer"
 	"s8/object"
 	"s8/parser"
-	"testing"
 )
 
 type vmTestCase struct {
@@ -403,7 +404,8 @@ func TestBuiltinFunctions(t *testing.T) {
 				Message: "argument to `len` not supported, got INTEGER",
 			},
 		},
-		{`len("one", "two")`,
+		{
+			`len("one", "two")`,
 			&object.Error{
 				Message: "wrong number of arguments. got=2, want=1",
 			},
@@ -413,14 +415,16 @@ func TestBuiltinFunctions(t *testing.T) {
 		{`puts("hello", "world!")`, Null},
 		{`first([1, 2, 3])`, 1},
 		{`first([])`, Null},
-		{`first(1)`,
+		{
+			`first(1)`,
 			&object.Error{
 				Message: "argument to `first` must be ARRAY, got INTEGER",
 			},
 		},
 		{`last([1, 2, 3])`, 3},
 		{`last([])`, Null},
-		{`last(1)`,
+		{
+			`last(1)`,
 			&object.Error{
 				Message: "argument to `last` must be ARRAY, got INTEGER",
 			},
@@ -428,7 +432,8 @@ func TestBuiltinFunctions(t *testing.T) {
 		{`rest([1, 2, 3])`, []int{2, 3}},
 		{`rest([])`, Null},
 		{`push([], 1)`, []int{1}},
-		{`push(1, 1)`,
+		{
+			`push(1, 1)`,
 			&object.Error{
 				Message: "argument to `push` must be ARRAY, got INTEGER",
 			},
@@ -511,6 +516,7 @@ func testExpectedObject(t *testing.T, expected any, actual object.Object) {
 		}
 	}
 }
+
 func testStringObject(expected string, actual object.Object) error {
 	result, ok := actual.(*object.String)
 	if !ok {

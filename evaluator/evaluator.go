@@ -102,6 +102,10 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 	case *ast.Identifier:
 		return evalIdentifier(node, env)
 	case *ast.FunctionLiteral:
+		// Look at this:
+		// The conversion of a function literal to a function object
+		// and setting the Env field on the said function object
+		// both happen in the same code block
 		params := node.Parameters
 		body := node.Body
 		return &object.Function{Parameters: params, Env: env, Body: body}
@@ -614,10 +618,9 @@ func evalExpressions(exprs []ast.Expression, env *object.Environment) []object.O
 func applyFunction(fn object.Object, args []object.Object) object.Object {
 	switch fn := fn.(type) {
 	case *object.Function:
-
 		extendedEnv := extendedFunctionEnv(fn, args)
 		// We pass the extended env which EXTENDS (not replaces) the function's enclosed environment
-		// This means the inner function can access values from its outer/enclosing environment
+		// This means the inner function can access values from its outer/enclosing environment a.k.a closure
 		evaluated := Eval(fn.Body, extendedEnv)
 
 		return unwrapReturnValue(evaluated)

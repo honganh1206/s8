@@ -4,9 +4,10 @@ import (
 	"bytes"
 	"fmt"
 	"hash/fnv"
+	"strings"
+
 	"s8/ast"
 	"s8/code"
-	"strings"
 )
 
 type ObjectType string
@@ -31,7 +32,8 @@ const (
 	CONTINUE_OBJ     = "CONTINUE"
 	// Hold the instructions of a compiled function
 	// then we pass it as a constant
-	COMPILED_FUNCTION_OBJ = "COMPILED_FUNCTION_OBJ"
+	COMPILED_FUNCTION_OBJ = "COMPILED_FUNCTION"
+	CLOSURE_OBJ           = "CLOSURE"
 )
 
 // Interface instead of struct
@@ -306,4 +308,8 @@ func (cf *CompiledFunction) Type() ObjectType { return COMPILED_FUNCTION_OBJ }
 
 func (cf *CompiledFunction) Inspect() string {
 	return fmt.Sprintf("CompiledFunction[%p]", cf)
+}
+
+type Closure struct {
+	Fn *CompiledFunction
 }
