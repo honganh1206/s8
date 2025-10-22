@@ -14,6 +14,7 @@ func TestMake(t *testing.T) {
 		{OpAdd, []int{}, []byte{byte(OpAdd)}},
 		// 256 local bindings per function should be enough?
 		{OpGetLocal, []int{255}, []byte{byte(OpGetLocal), 255}},
+		{OpClosure, []int{65534, 255}, []byte{byte(OpClosure), 255, 254, 255}},
 	}
 
 	for _, tt := range tests {
@@ -32,12 +33,14 @@ func TestMake(t *testing.T) {
 	}
 }
 
+// Test display of instructions as strings
 func TestInstructionsString(t *testing.T) {
 	instructions := []Instructions{
 		Make(OpAdd),
 		Make(OpGetLocal, 1),
 		Make(OpConstant, 2),
 		Make(OpConstant, 65535),
+		Make(OpClosure, 65535, 255),
 	}
 
 	// Byte offset - Opcode (1 byte) - Operand (2 bytes)
@@ -45,6 +48,7 @@ func TestInstructionsString(t *testing.T) {
 0001 OpGetLocal 1
 0003 OpConstant 2
 0006 OpConstant 65535
+0009 OpClosure 65535 255
 `
 
 	concatted := Instructions{} // Flatten the slice of slices into 1 slice
@@ -67,6 +71,7 @@ func TestReadOperands(t *testing.T) {
 	}{
 		{OpConstant, []int{65535}, 2},
 		{OpGetLocal, []int{255}, 1},
+		{OpClosure, []int{65535, 255}, 2},
 	}
 
 	for _, tt := range tests {

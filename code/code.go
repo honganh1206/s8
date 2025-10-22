@@ -71,6 +71,7 @@ const (
 	OpReturnValue // Return value must be on top of the stack
 	OpReturn      // Return no value, resume to parent execution
 	OpGetBuiltin
+	OpClosure
 )
 
 // How an instruction looks like
@@ -130,6 +131,11 @@ var definitions = map[Opcode]*Definition{
 	OpReturn:      {"OpReturn", []int{}},
 	// Define up to 256 builtin functions
 	OpGetBuiltin: {"OpGetBuiltin", []int{1}},
+	// Two operands! What do we have here?
+	// The 1st one is the constant index, specifying where in the constant pool we can find *object.CompiledFunction.
+	// The two bytes are to ensure we can find the compiled function without worrying the index is too high.
+	// The 2nd operand specifies how many free variables sit on the stack and to-be-transferred to the closure. 1 byte (256 free variables) should be enough?
+	OpClosure: {"OpClosure", []int{2, 1}},
 }
 
 func Lookup(op byte) (*Definition, error) {
@@ -244,6 +250,8 @@ func (ins Instructions) fmtInstruction(def *Definition, operands []int) string {
 		return def.Name
 	case 1: // Case for OpConstant
 		return fmt.Sprintf("%s %d", def.Name, operands[0])
+	case 2:
+		return fmt.Sprintf("%s %d %d", def.Name, operands[0], operands[1])
 	}
 
 	return fmt.Sprintf("ERROR: unhandled operandCount for %s\n", def.Name)

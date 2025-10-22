@@ -2,10 +2,11 @@ package compiler
 
 import (
 	"fmt"
+	"sort"
+
 	"s8/ast"
 	"s8/code"
 	"s8/object"
-	"sort"
 )
 
 type Compiler struct {
@@ -342,7 +343,9 @@ func (c *Compiler) Compile(node ast.Node) error {
 		// and this time they are not in the main scope
 		compiledFn := &object.CompiledFunction{Instructions: instructions, NumLocals: numLocals, NumParameters: len(node.Parameters)}
 
-		c.emit(code.OpConstant, c.addConstant(compiledFn))
+		fnIndex := c.addConstant(compiledFn)
+		// Turning all functions to closures
+		c.emit(code.OpClosure, fnIndex, 0)
 	case *ast.ReturnStatement:
 		err := c.Compile(node.ReturnValue)
 		if err != nil {

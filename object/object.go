@@ -312,4 +312,10 @@ func (cf *CompiledFunction) Inspect() string {
 
 type Closure struct {
 	Fn *CompiledFunction
+	// Free variables.
+	// Equivalent to Env field in *object.Function.
+	Free []Object
 }
+
+func (c *Closure) Type() ObjectType { return CLOSURE_OBJ }
+func (c *Closure) Inspect() string  { return fmt.Sprintf("Closure[%p]", c) }

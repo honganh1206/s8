@@ -6,7 +6,7 @@ import (
 )
 
 type Frame struct {
-	fn *object.CompiledFunction
+	cl *object.Closure
 	ip int
 	// A temp storage to keep track of the stack pointer value
 	// before we execute a function call.
@@ -16,11 +16,11 @@ type Frame struct {
 	basePointer int
 }
 
-func NewFrame(fn *object.CompiledFunction, basePointer int) *Frame {
-	return &Frame{fn: fn, ip: -1, basePointer: basePointer}
+func NewFrame(cl *object.Closure, basePointer int) *Frame {
+	return &Frame{cl: cl, ip: -1, basePointer: basePointer}
 }
 
 // Return the instructions of the compiled function in a frame
 func (f *Frame) Instructions() code.Instructions {
-	return f.fn.Instructions
+	return f.cl.Fn.Instructions
 }

@@ -2,6 +2,7 @@ package vm
 
 import (
 	"fmt"
+
 	"s8/code"
 	"s8/compiler"
 	"s8/object"
@@ -12,12 +13,16 @@ const StackSize = 2048
 // Since each operand is 16 bit-wide,
 // we have an upper limit on the number of global bindings
 // our VM can support
-const GlobalSize = 65536
-const MaxFrames = 1024
+const (
+	GlobalSize = 65536
+	MaxFrames  = 1024
+)
 
-var True = &object.Boolean{Value: true}
-var False = &object.Boolean{Value: false}
-var Null = &object.Null{}
+var (
+	True  = &object.Boolean{Value: true}
+	False = &object.Boolean{Value: false}
+	Null  = &object.Null{}
+)
 
 type VM struct {
 	// constant pool
@@ -35,7 +40,8 @@ func New(bytecode *compiler.Bytecode) *VM {
 	// Pre-allocate the frames slice with the main frame,
 	// now we don't need to initialize the instructions in the VM struct.
 	mainFn := &object.CompiledFunction{Instructions: bytecode.Instructions}
-	mainFrame := NewFrame(mainFn, 0)
+	mainClosure := &object.Closure{Fn: mainFn}
+	mainFrame := NewFrame(mainClosure, 0)
 
 	frames := make([]*Frame, MaxFrames)
 	frames[0] = mainFrame
@@ -259,6 +265,17 @@ func (vm *VM) Run() error {
 			if err != nil {
 				return err
 			}
+		case code.OpClosure:
+			// Read the compiled function
+			constIndex := code.ReadUint16(ins[ip+1:])
+			// Read the array of free vars (Later)
+			_ = code.ReadUint8(ins[ip+3:])
+			vm.currentFrame().ip += 3
+
+			err := vm.pushClosure(int(constIndex))
+			if err != nil {
+				return err
+			}
 		}
 
 	}
@@ -281,7 +298,6 @@ func (vm *VM) executeBinaryOperation(op code.Opcode) error {
 		return fmt.Errorf("unsupported types for binary operation: %s %s",
 			leftType, rightType)
 	}
-
 }
 
 func (vm *VM) executeBinaryIntegerOperation(op code.Opcode, left, right object.Object) error {
@@ -409,7 +425,6 @@ func (vm *VM) executeUnaryOperation(op code.Opcode) error {
 	}
 
 	return nil
-
 }
 
 // Push the object from the constant pool to the stack
@@ -544,8 +559,8 @@ func (vm *VM) executeCall(numArgs int) error {
 	// so we need to access the function by -1 to avoid accessing empty/undefined stack location
 	callee := vm.stack[vm.sp-1-numArgs]
 	switch callee := callee.(type) {
-	case *object.CompiledFunction:
-		return vm.callFunction(callee, numArgs)
+	case *object.Closure:
+		return vm.callClosure(callee, numArgs)
 	case *object.Builtin:
 		return vm.callBuiltin(callee, numArgs)
 	default:
@@ -553,18 +568,18 @@ func (vm *VM) executeCall(numArgs int) error {
 	}
 }
 
-func (vm *VM) callFunction(fn *object.CompiledFunction, numArgs int) error {
-	if numArgs != fn.NumParameters {
+func (vm *VM) callClosure(cl *object.Closure, numArgs int) error {
+	if numArgs != cl.Fn.NumParameters {
 		return fmt.Errorf("wrong number of arguments: want=%d, got=%d",
-			fn.NumParameters, numArgs)
+			cl.Fn.NumParameters, numArgs)
 	}
 	// Store the current stack pointer as the base/frame pointer
 	// so we know somewhere to resume when we are done with the function call.
 	// We also need to subtract the argument indexes so the base pointer does not point to empty stack slots at the top.
-	frame := NewFrame(fn, vm.sp-numArgs)
+	frame := NewFrame(cl, vm.sp-numArgs)
 	vm.pushFrame(frame)
 	// Create a "hole" - memory region of the stack for the local bindings of the OpCall being executed
-	vm.sp = frame.basePointer + fn.NumLocals
+	vm.sp = frame.basePointer + cl.Fn.NumLocals
 
 	return nil
 }
@@ -583,4 +598,15 @@ func (vm *VM) callBuiltin(builtin *object.Builtin, numArgs int) error {
 	}
 
 	return nil
+}
+
+func (vm *VM) pushClosure(constIndex int) error {
+	constant := vm.constants[constIndex]
+	fn, ok := constant.(*object.CompiledFunction)
+	if !ok {
+		return fmt.Errorf("not a function: %+v", constant)
+	}
+
+	closure := &object.Closure{Fn: fn}
+	return vm.push(closure)
 }
