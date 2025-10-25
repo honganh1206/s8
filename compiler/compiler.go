@@ -336,8 +336,14 @@ func (c *Compiler) Compile(node ast.Node) error {
 			c.emit(code.OpReturn)
 		}
 
+		freeSymbols := c.symbolTable.FreeSymbols
 		numLocals := c.symbolTable.numDefinitions
 		instructions := c.leaveScope()
+
+		// Emit OpGetFree
+		for _, s := range freeSymbols {
+			c.loadSymbols(s)
+		}
 
 		// Change where compiled instructions are stored
 		// and this time they are not in the main scope
@@ -345,7 +351,9 @@ func (c *Compiler) Compile(node ast.Node) error {
 
 		fnIndex := c.addConstant(compiledFn)
 		// Turning all functions to closures
-		c.emit(code.OpClosure, fnIndex, 0)
+		// by merging the free variables on the stack with an *object.CompiledFunction
+		// to become an *object.Closure
+		c.emit(code.OpClosure, fnIndex, len(freeSymbols))
 	case *ast.ReturnStatement:
 		err := c.Compile(node.ReturnValue)
 		if err != nil {
@@ -497,6 +505,8 @@ func (c *Compiler) loadSymbols(s Symbol) {
 		c.emit(code.OpGetGlobal, s.Index)
 	case LocalScope:
 		c.emit(code.OpGetLocal, s.Index)
+	case FreeScope:
+		c.emit(code.OpGetFree, s.Index)
 	case BuiltinScope:
 		c.emit(code.OpGetBuiltin, s.Index)
 	}

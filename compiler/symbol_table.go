@@ -6,6 +6,7 @@ const (
 	GlobalScope  SymbolScope = "GLOBAL"
 	LocalScope   SymbolScope = "LOCAl"
 	BuiltinScope SymbolScope = "BUILTIN"
+	FreeScope    SymbolScope = "FREE"
 )
 
 type Symbol struct {
@@ -20,12 +21,14 @@ type SymbolTable struct {
 	Outer *SymbolTable
 	// Map identifiers with their information
 	store          map[string]Symbol
+	FreeSymbols    []Symbol
 	numDefinitions int
 }
 
 func NewSymbolTable() *SymbolTable {
 	s := make(map[string]Symbol)
-	return &SymbolTable{store: s}
+	free := []Symbol{}
+	return &SymbolTable{store: s, FreeSymbols: free}
 }
 
 func NewEnclosedSymbolTable(outer *SymbolTable) *SymbolTable {
@@ -55,12 +58,33 @@ func (s *SymbolTable) DefineBuiltin(index int, name string) Symbol {
 	return symbol
 }
 
+func (s *SymbolTable) defineFree(original Symbol) Symbol {
+	s.FreeSymbols = append(s.FreeSymbols, original)
+
+	symbol := Symbol{Name: original.Name, Index: (len(s.FreeSymbols) - 1)}
+	symbol.Scope = FreeScope
+
+	s.store[original.Name] = symbol
+	return symbol
+}
+
 // Recursively find the symbol inside the symbol table
 func (s *SymbolTable) Resolve(name string) (Symbol, bool) {
 	obj, ok := s.store[name]
+	// Check 1: Has the var been defined in current scope?
 	if !ok && s.Outer != nil {
 		obj, ok = s.Outer.Resolve(name)
-		return obj, ok
+		if !ok {
+			return obj, ok
+		}
+
+		// Check 2: Is it a global binding or a builtin?
+		if obj.Scope == GlobalScope || obj.Scope == BuiltinScope {
+			return obj, ok
+		}
+
+		free := s.defineFree(obj)
+		return free, true
 	}
 	return obj, ok
 }

@@ -878,6 +878,144 @@ push([], 1);
 	runCompilerTests(t, tests)
 }
 
+func TestClosures(t *testing.T) {
+	tests := []compilerTestCase{
+		{
+			input: `
+			funk(a) {
+				funk(b) {
+					a + b
+				}
+			}
+			`,
+			expectedConstants: []any{
+				// The closure is the inner function with the b parameter.
+				// From this function's perspective, we need to emit OpGetFree to fetch a from the stack.
+				[]code.Instructions{
+					// a is the free variable
+					code.Make(code.OpGetFree, 0),
+					// b is just the local variable
+					code.Make(code.OpGetLocal, 0),
+					code.Make(code.OpAdd),
+					code.Make(code.OpReturnValue),
+				},
+				[]code.Instructions{
+					code.Make(code.OpGetLocal, 0),
+					// 1 free variable sitting on the stack
+					code.Make(code.OpClosure, 0, 1),
+					code.Make(code.OpReturnValue),
+				},
+			},
+			expectedInstructions: []code.Instructions{
+				// The closure that is created
+				code.Make(code.OpClosure, 1, 0),
+				code.Make(code.OpPop),
+			},
+		},
+		{
+			input: `
+			funk(a) {
+				funk(b) {
+						funk(c){
+							a + b + c
+					}
+				}
+			}
+			`,
+			expectedConstants: []any{
+				// 1st closure is function with param c
+				[]code.Instructions{
+					// Referencing 2 free variables a and b
+					code.Make(code.OpGetFree, 0),
+					code.Make(code.OpGetFree, 1),
+					code.Make(code.OpAdd),
+					code.Make(code.OpGetLocal, 0),
+					code.Make(code.OpAdd),
+					code.Make(code.OpReturnValue),
+				},
+				// 2nd closure is function with param b
+				[]code.Instructions{
+					code.Make(code.OpGetFree, 0),
+					code.Make(code.OpGetLocal, 0),
+					// Populate the Free array with 2 variables a and b
+					code.Make(code.OpClosure, 0, 2),
+					code.Make(code.OpReturnValue),
+				},
+				[]code.Instructions{
+					code.Make(code.OpGetLocal, 0),
+					code.Make(code.OpClosure, 1, 1),
+					code.Make(code.OpReturnValue),
+				},
+			},
+			expectedInstructions: []code.Instructions{
+				// We have 2 closures here
+				code.Make(code.OpClosure, 2, 0),
+				code.Make(code.OpPop),
+			},
+		},
+		{
+			input: `
+			let global = 55;
+			funk() {
+				let a = 66;
+				funk() {
+					let b = 77;
+					funk() {
+						let c = 88;
+						global + a + b + c;
+					}
+				}
+			}
+			`,
+			expectedConstants: []any{
+				55,
+				66,
+				77,
+				88,
+				// Innermost function
+				[]code.Instructions{
+					code.Make(code.OpConstant, 3),
+					code.Make(code.OpSetLocal, 0),
+					code.Make(code.OpGetGlobal, 0),
+					// a
+					code.Make(code.OpGetFree, 0),
+					code.Make(code.OpAdd),
+					// b
+					code.Make(code.OpGetFree, 1),
+					code.Make(code.OpAdd),
+					code.Make(code.OpGetLocal, 0),
+					code.Make(code.OpAdd),
+					code.Make(code.OpReturnValue),
+				},
+				// Function with let b
+				[]code.Instructions{
+					code.Make(code.OpConstant, 2),
+					code.Make(code.OpSetLocal, 0),
+					code.Make(code.OpGetFree, 0),
+					code.Make(code.OpGetLocal, 0),
+					code.Make(code.OpClosure, 4, 2),
+					code.Make(code.OpReturnValue),
+				},
+				// Function with let a
+				[]code.Instructions{
+					code.Make(code.OpConstant, 1),
+					code.Make(code.OpSetLocal, 0),
+					code.Make(code.OpGetLocal, 0),
+					code.Make(code.OpClosure, 5, 1),
+					code.Make(code.OpReturnValue),
+				},
+			},
+			expectedInstructions: []code.Instructions{
+				code.Make(code.OpConstant, 0),
+				code.Make(code.OpSetGlobal, 0),
+				code.Make(code.OpClosure, 6, 0),
+				code.Make(code.OpPop),
+			},
+		},
+	}
+	runCompilerTests(t, tests)
+}
+
 func runCompilerTests(t *testing.T, tests []compilerTestCase) {
 	// Without this, the error will be shown in the helper function
 	// Not the test function that invokes this helper method

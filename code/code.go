@@ -72,6 +72,7 @@ const (
 	OpReturn      // Return no value, resume to parent execution
 	OpGetBuiltin
 	OpClosure
+	OpGetFree // Get free variables
 )
 
 // How an instruction looks like
@@ -136,6 +137,7 @@ var definitions = map[Opcode]*Definition{
 	// The two bytes are to ensure we can find the compiled function without worrying the index is too high.
 	// The 2nd operand specifies how many free variables sit on the stack and to-be-transferred to the closure. 1 byte (256 free variables) should be enough?
 	OpClosure: {"OpClosure", []int{2, 1}},
+	OpGetFree: {"OpGetFree", []int{1}},
 }
 
 func Lookup(op byte) (*Definition, error) {
