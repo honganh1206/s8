@@ -264,6 +264,90 @@ minusOne() + minusTwo();
 	runVmTests(t, tests)
 }
 
+func TestClosures(t *testing.T) {
+	tests := []vmTestCase{
+		{
+			input: `
+			let newClosure = funk(a) {
+				funk() { a; };
+			};
+			let closure = newClosure(99);
+			closure();
+			`,
+			expected: 99,
+		},
+		{
+			input: `
+			let newAdder = funk(a, b) {
+				funk(c) {
+					a + b + c;
+				};
+			};
+			let adder = newAdder(1, 2);
+			adder(8);
+			`,
+			expected: 11,
+		},
+		{
+			input: `
+			let newAdder = funk(a, b) {
+				let c = a + b;
+				funk(d) {
+					c + d;
+				};
+			};
+			let adder = newAdder(1, 2);
+			adder(8);
+			`,
+			expected: 11,
+		},
+		{
+			// This is kind slick
+			input: `
+			let newAdderOuter = funk(a, b) {
+				let c = a + b;
+				funk(d) {
+					let e = d + c;
+						funk(f) { e + f; };
+					};
+				};
+			let newAdderInner = newAdderOuter(1, 2)
+			let adder = newAdderInner(3);
+			adder(8);
+			`,
+			expected: 14,
+		},
+		{
+			input: `
+			let a = 1;
+			let newAdderOuter = funk(b) {
+				funk(c) {
+					funk(d) { a + b + c + d };
+				};
+			};
+			let newAdderInner = newAdderOuter(2)
+			let adder = newAdderInner(3);
+			adder(8);
+			`,
+			expected: 14,
+		},
+		{
+			input: `
+			let newClosure = funk(a, b) {
+				let one = funk() { a; };
+				let two = funk() { b; };
+				funk() { one() + two(); };
+			};
+			let closure = newClosure(9, 90);
+			closure();
+			`,
+			expected: 99,
+		},
+	}
+
+	runVmTests(t, tests)
+}
+
 func runVmTests(t *testing.T, tests []vmTestCase) {
 	t.Helper()
 

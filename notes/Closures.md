@@ -39,6 +39,8 @@ But the challenge: After we compile functions with their arguments then load the
 
 What are we going to do? Turn every function into a closure. When compiling a function's body, we will inspect each symbol we resolve to check whether it's a reference to a free variable or not. And we will transfer those free variables to our compiled function.
 
+Or TLDR: Wrap `*object.CompiledFunction` inside `*object.Closure` when we execute `OpClosure`
+
 What we need to make sure when compiling closures:
 
 1. The compiler can detect references to free variables and load them onto the stack, even when they are already out of scope.
@@ -78,3 +80,5 @@ A few checks before we resolve a free variable:
 - Is it a global binding or a built-in function?
 
 If all answers are no, it means the variable is defined as a local variable in the enclosing scope. Thus, it should be resolved as a free variable.
+
+## Executing closures
