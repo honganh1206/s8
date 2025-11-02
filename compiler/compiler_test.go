@@ -1016,6 +1016,91 @@ func TestClosures(t *testing.T) {
 	runCompilerTests(t, tests)
 }
 
+func TestRecursiveFunctions(t *testing.T) {
+	tests := []compilerTestCase{
+		{
+			// A recursive function NOT defined inside another function
+			input: `
+			let countDown = funk(x) { countDown(x - 1);};
+			countDown(1);
+			`,
+			// The closure aka the inner recursive function
+			expectedConstants: []any{
+				1,
+				[]code.Instructions{
+					// countDown
+					code.Make(code.OpCurrentClosure),
+					// x
+					code.Make(code.OpGetLocal, 0),
+					// 1
+					code.Make(code.OpConstant, 0),
+					code.Make(code.OpSub),
+					// countDown call itself
+					code.Make(code.OpCall, 1),
+					code.Make(code.OpReturnValue),
+				},
+				1,
+			},
+			expectedInstructions: []code.Instructions{
+				// Load countDown on to the stack as a closure
+				code.Make(code.OpClosure, 1, 0),
+				// Load the callee on to the stack
+				code.Make(code.OpSetGlobal, 0),
+				// Get the countDown on the stack
+				code.Make(code.OpGetGlobal, 0),
+				// Argument 1
+				code.Make(code.OpConstant, 2),
+				code.Make(code.OpCall, 1),
+				code.Make(code.OpPop),
+			},
+		},
+		{
+			// A recursive function defined inside another function
+			input: `
+			let wrapper = funk() {
+					let countDown = funk(x) { countDown(x - 1); }
+					countDown(1);
+			};
+		    wrapper();
+			`,
+			expectedConstants: []any{
+				1, // countDown(x-1)
+				// Calling the recursive function
+				[]code.Instructions{
+					code.Make(code.OpCurrentClosure),
+					code.Make(code.OpGetLocal, 0),
+					code.Make(code.OpConstant, 0),
+					code.Make(code.OpSub),
+					code.Make(code.OpCall, 1),
+					code.Make(code.OpReturnValue),
+				},
+				1, // countDown(1)
+				[]code.Instructions{
+					// At this point body of inner function has been compiled?
+					code.Make(code.OpClosure, 1, 0),
+					// Load countDown on to the stack
+					code.Make(code.OpSetLocal, 0),
+					code.Make(code.OpGetLocal, 0),
+					code.Make(code.OpConstant, 2),
+					code.Make(code.OpCall, 1),
+					code.Make(code.OpReturnValue),
+				},
+			},
+			expectedInstructions: []code.Instructions{
+				// Three compiled functions (counting the recursive function as well?)
+				code.Make(code.OpClosure, 3, 0),
+				// let wrapper
+				code.Make(code.OpSetGlobal, 0),
+				// Call wrapper();
+				code.Make(code.OpGetGlobal, 0),
+				code.Make(code.OpCall, 0),
+				code.Make(code.OpPop),
+			},
+		},
+	}
+	runCompilerTests(t, tests)
+}
+
 func runCompilerTests(t *testing.T, tests []compilerTestCase) {
 	// Without this, the error will be shown in the helper function
 	// Not the test function that invokes this helper method
@@ -1089,7 +1174,7 @@ func testConstants(expected []any, actual []object.Object) error {
 					i, err)
 			}
 		case []code.Instructions:
-			// Case for function
+			// Functions
 			fn, ok := actual[i].(*object.CompiledFunction)
 			if !ok {
 				return fmt.Errorf("constant %d - not a function: %T", i, actual[i])

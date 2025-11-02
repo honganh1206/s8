@@ -2,8 +2,10 @@ package ast
 
 import (
 	"bytes"
-	"s8/token"
+	"fmt"
 	"strings"
+
+	"s8/token"
 )
 
 type Node interface {
@@ -414,7 +416,6 @@ func (ie *IfExpression) String() string {
 	}
 
 	return out.String()
-
 }
 
 type BlockStatement struct {
@@ -434,13 +435,13 @@ func (bs *BlockStatement) String() string {
 	}
 
 	return out.String()
-
 }
 
 type FunctionLiteral struct {
 	Token      token.Token // The 'funk' token
 	Parameters []*Identifier
 	Body       *BlockStatement
+	Name       string
 }
 
 func (fl *FunctionLiteral) expressionNode() {}
@@ -450,7 +451,12 @@ func (fl *FunctionLiteral) TokenLiteral() string { return fl.Token.Literal }
 func (fl *FunctionLiteral) String() string {
 	var out bytes.Buffer
 
-	out.WriteString("funk")
+	out.WriteString(fl.TokenLiteral())
+	// Save the name of the binding i.e., let myFunk = funk()...
+	// on to the function literal itself
+	if fl.Name != "" {
+		out.WriteString(fmt.Sprintf("<%s>", fl.Name))
+	}
 	out.WriteString("(")
 
 	for i, param := range fl.Parameters {
@@ -464,7 +470,6 @@ func (fl *FunctionLiteral) String() string {
 	out.WriteString(") ")
 	out.WriteString(fl.Body.String())
 	return out.String()
-
 }
 
 type CallExpression struct {
@@ -492,7 +497,6 @@ func (ce *CallExpression) String() string {
 	out.WriteString(")")
 
 	return out.String()
-
 }
 
 type StringLiteral struct {
@@ -554,7 +558,6 @@ func (te *TernaryExpression) String() string {
 	out.WriteString(")")
 
 	return out.String()
-
 }
 
 type IndexExpression struct {

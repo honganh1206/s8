@@ -71,7 +71,7 @@ func TestReadOperands(t *testing.T) {
 	}{
 		{OpConstant, []int{65535}, 2},
 		{OpGetLocal, []int{255}, 1},
-		{OpClosure, []int{65535, 255}, 2},
+		{OpClosure, []int{65535, 255}, 3},
 	}
 
 	for _, tt := range tests {

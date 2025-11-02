@@ -2,6 +2,8 @@
 
 A **closure** is a function that "remembers" the variables and context from the environment where it was defined, even if it's later executed in a different scope.
 
+> TLDR: Closure = Function + Its remembered environment
+
 Closures **carry their own environments**. Closures always have _access to the bindings of the environment in which they were defined_, even much later and in any place.
 
 ```js
@@ -20,10 +22,16 @@ function makeCounter() {
 let counter = makeCounter();
 // Even though makeCounter is done executing,
 // the counts variable persists,
-// since the closure retains a reference to the environment where count was declared
+// since the closure retains a reference (maybe a pointer) to the environment where count was declared
 puts(counter()); // 1
 puts(counter()); // 2
 ```
+
+## ELI5
+
+Imagine you have a **backpack** that can hold things (variables).
+
+When you create a closure, you are making a _function_ that carries a backpack _filled with the variables from where it was born_. Even after you leave that place, the function still keeps and remembers what's inside the bag.
 
 ## Revising
 
@@ -81,4 +89,40 @@ A few checks before we resolve a free variable:
 
 If all answers are no, it means the variable is defined as a local variable in the enclosing scope. Thus, it should be resolved as a free variable.
 
-## Executing closures
+## Recursive closures
+
+There might be an edge case where `OpGetLocal` is set BEFORE `OpSetLocal`. Have a look at the following example:
+
+```js
+let wrapper = function () {
+  let countDown = function (x) {
+    if (x == 0) {
+      return 0;
+    } else {
+      countDown(x - 1);
+    }
+  };
+  countDown(1);
+};
+wrapper();
+```
+
+Recall: The compiler iterates the symbols marked as free and emits necessary load instructions to get the free variables on to the stack.
+
+While compiling the body of `countDown`, the compiler came across the reference to `countDown` and asked the symbol table to resolve it.
+
+The symbol table realized that there is no symbol with the name `countDown` in the current scope, so it marked `countDown` as a free variable (Refer to `Resolve()` logic in `symbol_table.go`), ready to be loaded on to the stack.
+
+After compiling the body of `countDown` and right before emitting the `OpClosure` instruction to turn `countDown` to a closure, the compiler iterates over the symbols marked as free and loads them on to the stack.
+
+When the VM executes the `OpClosure` instruction that comes after the load instructions, it should be able to access the free variables and transfer them onto the `*object.Closure` (the backpack) the compiler creates.
+
+However, when the VM executes the `OpClosure` instruction that comes after the variable-loading instructions, _the local index 0 has not yet been saved_. Instead, we have a Go `nil` on the stack, but that's _where the closure itself should end up_. (TLDR: We are executing something we have yet to create)
+
+`countDown` is itself a free variable, and it refers to itself (recursion, duh!). But we have yet to turn it into a closure before we create a reference to it.
+
+The solution?
+
+1. We emit a new opcode instead of marking the recursive function as a free variable.
+2. We make the compiler know the name of the function we are compiling.
+3. We let the symbol table know when there is a self-reference by defining a new scope called `FunctionScope`. Only one symbol with that scope per symbol table. When we resolve a name to get a symbol with that scope, we know that it's the name of the current function we're compiling.

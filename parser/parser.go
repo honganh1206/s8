@@ -2,10 +2,11 @@ package parser
 
 import (
 	"fmt"
+	"strconv"
+
 	"s8/ast"
 	"s8/lexer"
 	"s8/token"
-	"strconv"
 )
 
 // Operator precedences
@@ -264,6 +265,11 @@ func (p *Parser) parseLetStatement() *ast.LetStatement {
 	p.nextToken()
 
 	stmt.Value = p.parseExpression(LOWEST)
+
+	// Bind the variable name to the function
+	if fl, ok := stmt.Value.(*ast.FunctionLiteral); ok {
+		fl.Name = stmt.Name.Value
+	}
 
 	if p.peekTokenIs(token.SEMICOLON) {
 		p.nextToken()

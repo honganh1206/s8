@@ -348,6 +348,81 @@ func TestClosures(t *testing.T) {
 	runVmTests(t, tests)
 }
 
+func TestRecursiveFunctions(t *testing.T) {
+	tests := []vmTestCase{
+		{
+			// Simple recursive closure
+			input: `
+				let countDown = funk(x) {
+						if (x == 0) {
+								return 0;
+						} else {
+								countDown(x - 1);
+						}
+				};
+				countDown(1);
+				`,
+			expected: 0,
+		},
+		{
+			input: `
+				let countDown = funk(x) {
+						if (x == 0) {
+								return 0;
+						} else {
+								countDown(x - 1);
+						}
+				};
+				let wrapper = funk() {
+						countDown(1);
+				};
+				wrapper();
+				`,
+			expected: 0,
+		},
+		{
+			// A recursive closure defined in another closure
+			input: `
+				let wrapper = funk() {
+						let countDown = funk(x) {
+								if (x == 0) {
+										return 0;
+								} else {
+										countDown(x - 1);
+								}
+						};
+						countDown(1);
+				};
+				wrapper();
+				`,
+			expected: 0,
+		},
+	}
+	runVmTests(t, tests)
+}
+
+func TestRecursiveFibonacci(t *testing.T) {
+	tests := []vmTestCase{
+		{
+			input: `
+			let fibonacci = funk(x) {
+				if (x == 0) {
+					return 0;
+				} else {
+					if (x == 1) {
+						return 1;
+					} else {
+						fibonacci(x - 1) + fibonacci(x-2);
+					}
+				}
+			}
+			fibonacci(15);
+			`,
+		},
+	}
+	runVmTests(t, tests)
+}
+
 func runVmTests(t *testing.T, tests []vmTestCase) {
 	t.Helper()
 
@@ -360,6 +435,20 @@ func runVmTests(t *testing.T, tests []vmTestCase) {
 			t.Fatalf("compiler error: %s", err)
 		}
 
+		// Temp bytecode dumper
+		// for i, constant := range comp.Bytecode().Constants {
+		// 	fmt.Printf("CONSTANT %d %p (%T):\n", i, constant, constant)
+		//
+		// 	switch constant := constant.(type) {
+		// 	case *object.CompiledFunction:
+		// 		fmt.Printf(" Instructions:\n%s", constant.Instructions)
+		// 	case *object.Integer:
+		// 		fmt.Printf(" Value: %d\n", constant.Value)
+		// 	}
+		//
+		// 	fmt.Printf("\n")
+		// }
+		//
 		vm := New(comp.Bytecode())
 
 		err = vm.Run()

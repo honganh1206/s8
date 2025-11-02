@@ -1,10 +1,11 @@
 package evaluator
 
 import (
+	"testing"
+
 	"s8/lexer"
 	"s8/object"
 	"s8/parser"
-	"testing"
 )
 
 func TestEvalIntegerExpression(t *testing.T) {
@@ -941,18 +942,18 @@ func TestForStatementsWithFloats(t *testing.T) {
 	}{
 		{
 			`let sum = 0.0;
-			for (let i = 1.0; i <= 3.0; i = i + 1.0) {
-				sum = sum + i;
-			}
-			sum`,
+				for (let i = 1.0; i <= 3.0; i = i + 1.0) {
+					sum = sum + i;
+				}
+				sum`,
 			6.0,
 		},
 		{
 			`let result = 1.0;
-			for (let i = 0.5; i <= 2.0; i = i + 0.5) {
-				result = result * i;
-			}
-			result`,
+				for (let i = 0.5; i <= 2.0; i = i + 0.5) {
+					result = result * i;
+				}
+				result`,
 			1.875, // 1.0 * 0.5 * 1.0 * 1.5 * 2.0
 		},
 	}
